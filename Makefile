@@ -1,8 +1,19 @@
+#######################################################################
+CC = g++
+LANG = -std=c++17
+COMPILER_FLAGS = -Wall -Wfatal-errors
+INCLUDE_PATH = -I"./libs/"
+SRC_FILES = ./src/*.cpp \
+ 			./src/game/*.cpp \
+			./src/logger/*.cpp
+LINKER_FLAGS = -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -llua5.4
+OBJECT_NAME = game_engine
+#######################################################################
 build:
-	g++ -Wall -std=c++17 -I"./libs/" src/*.cpp -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -llua5.4 -o game_engine
+	$(CC) $(COMPILER_FLAGS) $(LANG) $(INCLUDE_PATH) $(SRC_FILES) $(LINKER_FLAGS) -o $(OBJECT_NAME)
 
 run:
-	./game_engine
+	./$(OBJECT_NAME)
 
 clean:
-	rm game_engine
+	rm $(OBJECT_NAME)
