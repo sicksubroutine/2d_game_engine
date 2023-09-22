@@ -5,6 +5,7 @@
 // #include <sol/sol.hpp>
 // imports later?
 
+#include "../ecs/ecs.h"
 #include "game.h"
 #include "../logger/logger.h"
 #include <iostream>
@@ -67,9 +68,6 @@ void Game::Initialize(void) {
 
 }
 
-glm::vec2 player_pos;
-glm::vec2 player_vel;
-
 void Game::ProcessInput(void) {
     SDL_Event sdl_event;
     while (SDL_PollEvent(&sdl_event)) {
@@ -82,31 +80,34 @@ void Game::ProcessInput(void) {
                 if (sdl_event.key.keysym.sym == SDLK_ESCAPE)
                     is_running = false;
                 if (sdl_event.key.keysym.sym == SDLK_w)
-                    player_vel.y = -100;
+                    
                 if (sdl_event.key.keysym.sym == SDLK_s)
-                    player_vel.y = 100;
+                    
                 if (sdl_event.key.keysym.sym == SDLK_a)
-                    player_vel.x = -100;
+                    
                 if (sdl_event.key.keysym.sym == SDLK_d)
-                    player_vel.x = 100;
+                    
                 break;
             case SDL_KEYUP:
                 if (sdl_event.key.keysym.sym == SDLK_w)
-                    player_vel.y = 0;
+                    
                 if (sdl_event.key.keysym.sym == SDLK_s)
-                    player_vel.y = 0;
+                    
                 if (sdl_event.key.keysym.sym == SDLK_a)
-                    player_vel.x = 0;
+                    
                 if (sdl_event.key.keysym.sym == SDLK_d)
-                    player_vel.x = 0;
+                    
                 break;
         } 
     }
 }
 
 void Game::Setup(void) {
-    player_pos = glm::vec2(10.0, 20.0);
-    player_vel = glm::vec2(0.0, 0.0);
+    // TODO:
+    // Entity player = registry.CreateEntity();
+    // tank.AddComponent<TransformComponent>();
+    // tank.AddComponent<BoxColliderComponent>();
+    // tank.AddComponent<SpriteComponent>("./assets/images/tank.png");
 }
 
 void Game::TimeDo(void) {
@@ -120,27 +121,18 @@ void Game::TimeDo(void) {
 
 void Game::Update(void) {
     TimeDo();
-    player_pos.x += player_vel.x * delta_time;
-    player_pos.y += player_vel.y * delta_time;
+
+    // TODO:
+    // MovementSystem.Update();
+    // CollisionSystem.Update();
+    // DamageSystem.Update();
 }
 
 void Game::Render(void) {
     SDL_SetRenderDrawColor(renderer,21,21,21,255);
     SDL_RenderClear(renderer);
 
-    
-    SDL_Surface* surf = IMG_Load("/assets/images/tank-panther-right.png");
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surf);
-    SDL_FreeSurface(surf);
-
-    SDL_Rect dstRect = {
-        static_cast<int>(player_pos.x),
-        static_cast<int>(player_pos.y),
-        32,
-        32
-    };
-
-    SDL_RenderCopy(renderer, texture, NULL, &dstRect);
+    // TODO: Render game objects...
 
     SDL_RenderPresent(renderer);
 }
