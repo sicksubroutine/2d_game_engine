@@ -2,7 +2,8 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
-
+#include "../ecs/ecs.h"
+#include "../asset_store/asset_store.h"
 
 const int WINDOW_WIDTH = 800; 
 const int WINDOW_HEIGHT = 600;
@@ -14,9 +15,12 @@ class Game {
     private:
         bool is_running;
         int ms_prev_frame = 0;
-        double delta_time = 0;
+        float delta_time = 0;
         SDL_Window* window;
         SDL_Renderer* renderer;
+
+        std::unique_ptr<Registry> registry;
+        std::unique_ptr<AssetStore> asset_store;
 
     public:
         Game();
@@ -24,6 +28,7 @@ class Game {
 
         void Initialize();
         void Run();
+        void LoadLevel(int level_number);
         void Setup();
         void ProcessInput();
         void Update();

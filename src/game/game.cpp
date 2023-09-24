@@ -5,6 +5,11 @@
 // #include <sol/sol.hpp>
 // imports later?
 
+#include "../components/transform_component.h"
+#include "../components/rigid_body_component.h"
+#include "../components/sprite_component.h"
+#include "../systems/movement_system.h"
+#include "../systems/render_system.h"
 #include "../ecs/ecs.h"
 #include "game.h"
 #include "../logger/logger.h"
@@ -15,6 +20,8 @@
 
 Game::Game() {
     is_running = false;
+    registry = std::make_unique<Registry>();
+    asset_store = std::make_unique<AssetStore>();
     Logger::Log("Game constructor called.");
 }
 
@@ -102,12 +109,90 @@ void Game::ProcessInput(void) {
     }
 }
 
-void Game::Setup(void) {
+void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_size) {
+    // open the file and extract the tilemap data (comma separated values) (./assets/tilemaps/jungle.map)
+
+    // calculate the src_rect for each tile texture (320x96 tilemap with 32x32 tiles = 10x3)
+    
+    // Create an entity for each tile in the tilemap
+
+    // Add the following components to each tile entity:
+    // TransformComponent
+    // SpriteComponent (use the src_rect calculated above to extract from the tilemap texture via the asset_store using the asset_id)
+    // Data structure to hold tile IDs read from the file
+    std::vector<std::vector<int>> tile_data;
+
+    // Read CSV file into tile_data
+    std::ifstream file(file_path);
+    std::string line;
+    while (std::getline(file, line)) {
+        std::vector<int> row;
+        std::istringstream s(line);
+        std::string field;
+        while (getline(s, field, ',')) {
+            row.push_back(std::stoi(field));
+        }
+        tile_data.push_back(row);
+    }
+
+    // Iterate through tile_data to create entities and components
+    for (int y = 0; y < tile_data.size(); ++y) {
+        for (int x = 0; x < tile_data[y].size(); ++x) {
+            int tile_id = tile_data[y][x];  // Get tile ID from tile_data
+
+            // Calculate src_rect based on tile_id
+            SDL_Rect src_rect;
+            int tile_row = tile_id / 10;  // Assuming tileset is 10 tiles wide
+            int tile_col = tile_id % 10;
+
+            src_rect.x = tile_col * tile_size;
+            src_rect.y = tile_row * tile_size;
+            src_rect.w = tile_size;
+            src_rect.h = tile_size;
+
+            // Create entity and add components
+            Entity& tile_entity = ...;  // Your entity creation logic here
+            tile_entity.AddComponent<TransformComponent>(/*...*/);
+            tile_entity.AddComponent<SpriteComponent>(asset_id, src_rect, /*...*/);
+        }
+    }
+
+}
+
+void Game::LoadLevel(int level_number) {
+    // add the systems that need to be processed in our game
+    registry->add_system<MovementSystem>();
+    registry->add_system<RenderSystem>();
+
+    // Adding assets to the asset store
+    asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png");
+    asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png");
+    
     // TODO:
-    // Entity player = registry.CreateEntity();
-    // tank.AddComponent<TransformComponent>();
-    // tank.AddComponent<BoxColliderComponent>();
-    // tank.AddComponent<SpriteComponent>("./assets/images/tank.png");
+    // load the tilemap
+    // We need to load the tilemap texture
+    asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png");
+    // We need to load the tilemap map (./assets/tilemaps/jungle.map) (comma separated values)
+    LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32);
+
+    //create some entities
+    Entity tank = registry->create_entity();
+    Entity truck = registry->create_entity();
+
+    // add some components to the tank
+    tank.add_component<TransformComponent>(glm::vec2(10.0,30.0), glm::vec2(2.0,2.0), 0.0);
+    tank.add_component<RigidBodyComponent>(glm::vec2(50.0, 1.0));
+    tank.add_component<SpriteComponent>("tank-image", 32, 32);
+
+    // add some components to the truck
+    truck.add_component<TransformComponent>(glm::vec2(100.0,30.0), glm::vec2(2.0,2.0), 45.0);
+    truck.add_component<RigidBodyComponent>(glm::vec2(40.0, 25.0));
+    truck.add_component<SpriteComponent>("truck-image", 32, 32);
+}
+
+void Game::Setup(void) {
+    
+    LoadLevel(1);
 }
 
 void Game::TimeDo(void) {
@@ -122,9 +207,12 @@ void Game::TimeDo(void) {
 void Game::Update(void) {
     TimeDo();
 
-    // TODO:
-    // MovementSystem.Update();
-    // CollisionSystem.Update();
+    registry->get_system<MovementSystem>().Update(delta_time);
+
+    // update the registry to process any entities that are waiting to be added/removed
+    registry->Update();
+
+    // registry->get_system<CollisionSystem>().Update();
     // DamageSystem.Update();
 }
 
@@ -132,7 +220,8 @@ void Game::Render(void) {
     SDL_SetRenderDrawColor(renderer,21,21,21,255);
     SDL_RenderClear(renderer);
 
-    // TODO: Render game objects...
+    // invoke all of the systems that need to render
+    registry->get_system<RenderSystem>().Update(renderer, asset_store);
 
     SDL_RenderPresent(renderer);
 }

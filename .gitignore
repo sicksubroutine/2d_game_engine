@@ -41,7 +41,7 @@
 *.out
 *.app
 
-
+*.txt
 *.DS_Store
 **/.DS_Store
 
