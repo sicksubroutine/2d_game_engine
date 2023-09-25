@@ -4,9 +4,10 @@
 #include <SDL2/SDL.h>
 #include "../ecs/ecs.h"
 #include "../asset_store/asset_store.h"
+#include "../components/sprite_component.h"
 
-const int WINDOW_WIDTH = 800; 
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 1280; 
+const int WINDOW_HEIGHT = 720;
 const int FPS = 60;
 const int MS_PER_FRAME = 1000 / FPS;
 const bool FULL_SCREEN = false;
@@ -29,6 +30,7 @@ class Game {
         void Initialize();
         void Run();
         void LoadLevel(int level_number);
+        void LoadTileMap(std::string asset_id, std::string file_path, int tile_size, int tile_scale);
         void Setup();
         void ProcessInput();
         void Update();

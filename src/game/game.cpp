@@ -8,8 +8,10 @@
 #include "../components/transform_component.h"
 #include "../components/rigid_body_component.h"
 #include "../components/sprite_component.h"
+#include "../components/animation_component.h"
 #include "../systems/movement_system.h"
 #include "../systems/render_system.h"
+#include "../systems/animation_system.h"
 #include "../ecs/ecs.h"
 #include "game.h"
 #include "../logger/logger.h"
@@ -17,6 +19,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <glm/glm.hpp>
+#include <fstream>
+#include <sstream>
 
 Game::Game() {
     is_running = false;
@@ -39,15 +43,17 @@ void Game::Initialize(void) {
     // full screen
     SDL_DisplayMode displayMode;
     SDL_GetCurrentDisplayMode(0, &displayMode);
-    int win_width = FULL_SCREEN ? displayMode.w : WINDOW_WIDTH;
-    int win_height = FULL_SCREEN ? displayMode.h : WINDOW_HEIGHT;
+   //int win_width = FULL_SCREEN ? displayMode.w : WINDOW_WIDTH;
+   //int win_height = FULL_SCREEN ? displayMode.h : WINDOW_HEIGHT;
 
+    // Logger::Log("Window width: " + std::to_string(win_width));
+    // Logger::Log("Window height: " + std::to_string(win_height));
     window = SDL_CreateWindow(
         NULL,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        win_width,
-        win_height,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
         SDL_WINDOW_BORDERLESS
     );
 
@@ -109,20 +115,10 @@ void Game::ProcessInput(void) {
     }
 }
 
-void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_size) {
-    // open the file and extract the tilemap data (comma separated values) (./assets/tilemaps/jungle.map)
-
-    // calculate the src_rect for each tile texture (320x96 tilemap with 32x32 tiles = 10x3)
-    
-    // Create an entity for each tile in the tilemap
-
-    // Add the following components to each tile entity:
-    // TransformComponent
-    // SpriteComponent (use the src_rect calculated above to extract from the tilemap texture via the asset_store using the asset_id)
-    // Data structure to hold tile IDs read from the file
+void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_size, int tile_scale) {
     std::vector<std::vector<int>> tile_data;
 
-    // Read CSV file into tile_data
+    // Read file and store data in tile_data
     std::ifstream file(file_path);
     std::string line;
     while (std::getline(file, line)) {
@@ -134,15 +130,15 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
         }
         tile_data.push_back(row);
     }
+    int scale = tile_size * tile_scale;
 
     // Iterate through tile_data to create entities and components
     for (int y = 0; y < tile_data.size(); ++y) {
         for (int x = 0; x < tile_data[y].size(); ++x) {
-            int tile_id = tile_data[y][x];  // Get tile ID from tile_data
+            int tile_id = tile_data[y][x]; 
 
-            // Calculate src_rect based on tile_id
             SDL_Rect src_rect;
-            int tile_row = tile_id / 10;  // Assuming tileset is 10 tiles wide
+            int tile_row = tile_id / 10; 
             int tile_col = tile_id % 10;
 
             src_rect.x = tile_col * tile_size;
@@ -151,43 +147,53 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
             src_rect.h = tile_size;
 
             // Create entity and add components
-            Entity& tile_entity = ...;  // Your entity creation logic here
-            tile_entity.AddComponent<TransformComponent>(/*...*/);
-            tile_entity.AddComponent<SpriteComponent>(asset_id, src_rect, /*...*/);
+            Entity tile_entity = registry->create_entity();
+            tile_entity.add_component<TransformComponent>(glm::vec2(x * (scale), y * (scale)), glm::vec2(tile_scale, tile_scale), 0.0);
+            tile_entity.add_component<SpriteComponent>(asset_id, tile_size, tile_size, BACKGROUND_LAYER, src_rect.x, src_rect.y);
         }
     }
-
 }
 
 void Game::LoadLevel(int level_number) {
     // add the systems that need to be processed in our game
     registry->add_system<MovementSystem>();
     registry->add_system<RenderSystem>();
+    registry->add_system<AnimationSystem>();
 
     // Adding assets to the asset store
+    asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png");
     asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png");
     asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png");
+    asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper.png");
+    asset_store->add_texture(renderer, "radar-image", "./assets/images/radar.png");
     
-    // TODO:
-    // load the tilemap
-    // We need to load the tilemap texture
-    asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png");
-    // We need to load the tilemap map (./assets/tilemaps/jungle.map) (comma separated values)
-    LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32);
+    // loading the tilemap
+    LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
 
     //create some entities
-    Entity tank = registry->create_entity();
-    Entity truck = registry->create_entity();
+    Entity chopper = registry->create_entity();
+    chopper.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    chopper.add_component<RigidBodyComponent>(glm::vec2(10.0, 0.0));
+    chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
+    chopper.add_component<AnimationComponent>(2, 15, true);
+
+    Entity radar = registry->create_entity();
+    radar.add_component<TransformComponent>(glm::vec2(WINDOW_WIDTH-74, 10.0), glm::vec2(1.0, 1.0), 0.0);
+    radar.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
+    radar.add_component<SpriteComponent>("radar-image", 64, 64, GUI_LAYER);
+    radar.add_component<AnimationComponent>(8, 5, true);
 
     // add some components to the tank
-    tank.add_component<TransformComponent>(glm::vec2(10.0,30.0), glm::vec2(2.0,2.0), 0.0);
-    tank.add_component<RigidBodyComponent>(glm::vec2(50.0, 1.0));
-    tank.add_component<SpriteComponent>("tank-image", 32, 32);
+    Entity tank = registry->create_entity();
+    tank.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    tank.add_component<RigidBodyComponent>(glm::vec2(5.0, 0.0));
+    tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
 
-    // add some components to the truck
-    truck.add_component<TransformComponent>(glm::vec2(100.0,30.0), glm::vec2(2.0,2.0), 45.0);
-    truck.add_component<RigidBodyComponent>(glm::vec2(40.0, 25.0));
-    truck.add_component<SpriteComponent>("truck-image", 32, 32);
+    // // add some components to the truck
+    Entity truck = registry->create_entity();
+    truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 45.0);
+    truck.add_component<RigidBodyComponent>(glm::vec2(25.0, 25.0));
+    truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
 }
 
 void Game::Setup(void) {
@@ -208,6 +214,7 @@ void Game::Update(void) {
     TimeDo();
 
     registry->get_system<MovementSystem>().Update(delta_time);
+    registry->get_system<AnimationSystem>().Update();
 
     // update the registry to process any entities that are waiting to be added/removed
     registry->Update();
@@ -227,9 +234,11 @@ void Game::Render(void) {
 }
 
 void Game::Run(void) {
+    if (!window || !renderer) {
+        Logger::Err("Error running game.");
+        return;
+    }
     Setup();
-
-
     while (is_running) {
         ProcessInput();
         Update();
