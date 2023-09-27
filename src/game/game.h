@@ -17,6 +17,7 @@ class Game {
         bool is_running;
         int ms_prev_frame = 0;
         float delta_time = 0;
+        bool is_debug = false;
         SDL_Window* window;
         SDL_Renderer* renderer;
 

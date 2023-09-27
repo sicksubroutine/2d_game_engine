@@ -5,13 +5,20 @@
 // #include <sol/sol.hpp>
 // imports later?
 
+// components
 #include "../components/transform_component.h"
 #include "../components/rigid_body_component.h"
+#include "../components/box_collider_component.h"
 #include "../components/sprite_component.h"
 #include "../components/animation_component.h"
+
+// systems
 #include "../systems/movement_system.h"
 #include "../systems/render_system.h"
 #include "../systems/animation_system.h"
+#include "../systems/collision_system.h"
+
+// Others
 #include "../ecs/ecs.h"
 #include "game.h"
 #include "../logger/logger.h"
@@ -92,25 +99,29 @@ void Game::ProcessInput(void) {
             case SDL_KEYDOWN:
                 if (sdl_event.key.keysym.sym == SDLK_ESCAPE)
                     is_running = false;
-                if (sdl_event.key.keysym.sym == SDLK_w)
-                    
-                if (sdl_event.key.keysym.sym == SDLK_s)
-                    
-                if (sdl_event.key.keysym.sym == SDLK_a)
-                    
+                // toggle debug mode
                 if (sdl_event.key.keysym.sym == SDLK_d)
+                    Logger::Log("Debug mode toggled. Debug mode is now " + std::to_string(is_debug) + ".");
+                    is_debug = !is_debug;
+                // if (sdl_event.key.keysym.sym == SDLK_w)
+                    
+                // if (sdl_event.key.keysym.sym == SDLK_s)
+                    
+                // if (sdl_event.key.keysym.sym == SDLK_a)
+                    
+                // if (sdl_event.key.keysym.sym == SDLK_d)
                     
                 break;
-            case SDL_KEYUP:
-                if (sdl_event.key.keysym.sym == SDLK_w)
+            // case SDL_KEYUP:
+            //     if (sdl_event.key.keysym.sym == SDLK_w)
                     
-                if (sdl_event.key.keysym.sym == SDLK_s)
+            //     if (sdl_event.key.keysym.sym == SDLK_s)
                     
-                if (sdl_event.key.keysym.sym == SDLK_a)
+            //     if (sdl_event.key.keysym.sym == SDLK_a)
                     
-                if (sdl_event.key.keysym.sym == SDLK_d)
+            //     if (sdl_event.key.keysym.sym == SDLK_d)
                     
-                break;
+            //     break;
         } 
     }
 }
@@ -159,6 +170,7 @@ void Game::LoadLevel(int level_number) {
     registry->add_system<MovementSystem>();
     registry->add_system<RenderSystem>();
     registry->add_system<AnimationSystem>();
+    registry->add_system<CollisionSystem>();
 
     // Adding assets to the asset store
     asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png");
@@ -170,34 +182,38 @@ void Game::LoadLevel(int level_number) {
     // loading the tilemap
     LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
 
-    //create some entities
-    Entity chopper = registry->create_entity();
-    chopper.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
-    chopper.add_component<RigidBodyComponent>(glm::vec2(10.0, 0.0));
-    chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
-    chopper.add_component<AnimationComponent>(2, 15, true);
-
+    // create the radar entity
     Entity radar = registry->create_entity();
     radar.add_component<TransformComponent>(glm::vec2(WINDOW_WIDTH-74, 10.0), glm::vec2(1.0, 1.0), 0.0);
     radar.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     radar.add_component<SpriteComponent>("radar-image", 64, 64, GUI_LAYER);
     radar.add_component<AnimationComponent>(8, 5, true);
 
-    // add some components to the tank
-    Entity tank = registry->create_entity();
-    tank.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
-    tank.add_component<RigidBodyComponent>(glm::vec2(5.0, 0.0));
-    tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
+    //create some entities
+    Entity chopper = registry->create_entity();
+    chopper.add_component<TransformComponent>(glm::vec2(100.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
+    chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
+    chopper.add_component<AnimationComponent>(2, 15, true);
+    chopper.add_component<BoxColliderComponent>(24, 24, glm::vec2(8.0, 8.0));
 
-    // // add some components to the truck
+    // add tank entity
+    Entity tank = registry->create_entity();
+    tank.add_component<TransformComponent>(glm::vec2(500.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    tank.add_component<RigidBodyComponent>(glm::vec2(-30.0, 0.0));
+    tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
+    tank.add_component<BoxColliderComponent>(32, 32);
+
+    // add truck entity
     Entity truck = registry->create_entity();
     truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 45.0);
-    truck.add_component<RigidBodyComponent>(glm::vec2(25.0, 25.0));
+    truck.add_component<RigidBodyComponent>(glm::vec2(25.0, 0.0));
     truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
+    truck.add_component<BoxColliderComponent>(32, 32);
+
 }
 
 void Game::Setup(void) {
-    
     LoadLevel(1);
 }
 
@@ -215,6 +231,7 @@ void Game::Update(void) {
 
     registry->get_system<MovementSystem>().Update(delta_time);
     registry->get_system<AnimationSystem>().Update();
+    registry->get_system<CollisionSystem>().Update();
 
     // update the registry to process any entities that are waiting to be added/removed
     registry->Update();
@@ -229,6 +246,10 @@ void Game::Render(void) {
 
     // invoke all of the systems that need to render
     registry->get_system<RenderSystem>().Update(renderer, asset_store);
+    // a system that renders the bounding boxes of the colliders for debugging
+    if (is_debug) {
+        registry->get_system<CollisionSystem>().Debug(renderer);
+    }
 
     SDL_RenderPresent(renderer);
 }

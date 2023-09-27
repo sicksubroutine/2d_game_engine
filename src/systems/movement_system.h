@@ -16,10 +16,7 @@ class MovementSystem: public System {
             for (auto entity: get_system_entities()) {
                 auto& transform = entity.get_component<TransformComponent>();
                 const auto& rigid_body = entity.get_component<RigidBodyComponent>();
-
                 transform.position += rigid_body.velocity * delta_time;
-
-                //Logger::Log("Entity " + std::to_string(entity.get_id()) + " position: " + std::to_string(transform.position.x) + ", " + std::to_string(transform.position.y));
             }
         }
 };
