@@ -1,5 +1,5 @@
-#ifndef animation_component_h
-#define animation_component_h
+#ifndef ANIMATION_COMPONENT_H
+#define ANIMATION_COMPONENT_H
 
 #include <SDL2/SDL.h>
 

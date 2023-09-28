@@ -128,8 +128,8 @@ void Game::ProcessInput(void) {
 
 void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_size, int tile_scale) {
     std::vector<std::vector<int>> tile_data;
+    int scale = tile_size * tile_scale;
 
-    // Read file and store data in tile_data
     std::ifstream file(file_path);
     std::string line;
     while (std::getline(file, line)) {
@@ -141,9 +141,7 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
         }
         tile_data.push_back(row);
     }
-    int scale = tile_size * tile_scale;
-
-    // Iterate through tile_data to create entities and components
+    
     for (int y = 0; y < tile_data.size(); ++y) {
         for (int x = 0; x < tile_data[y].size(); ++x) {
             int tile_id = tile_data[y][x]; 
@@ -157,7 +155,6 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
             src_rect.w = tile_size;
             src_rect.h = tile_size;
 
-            // Create entity and add components
             Entity tile_entity = registry->create_entity();
             tile_entity.add_component<TransformComponent>(glm::vec2(x * (scale), y * (scale)), glm::vec2(tile_scale, tile_scale), 0.0);
             tile_entity.add_component<SpriteComponent>(asset_id, tile_size, tile_size, BACKGROUND_LAYER, src_rect.x, src_rect.y);
@@ -202,14 +199,14 @@ void Game::LoadLevel(int level_number) {
     tank.add_component<TransformComponent>(glm::vec2(500.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
     tank.add_component<RigidBodyComponent>(glm::vec2(-30.0, 0.0));
     tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
-    tank.add_component<BoxColliderComponent>(32, 32);
+    tank.add_component<BoxColliderComponent>(24, 24, glm::vec2(8.0, 8.0));
 
     // add truck entity
     Entity truck = registry->create_entity();
-    truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 45.0);
+    truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
     truck.add_component<RigidBodyComponent>(glm::vec2(25.0, 0.0));
     truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
-    truck.add_component<BoxColliderComponent>(32, 32);
+    truck.add_component<BoxColliderComponent>(24, 24, glm::vec2(8.0, 8.0));
 
 }
 

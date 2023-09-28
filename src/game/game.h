@@ -23,6 +23,7 @@ class Game {
 
         std::unique_ptr<Registry> registry;
         std::unique_ptr<AssetStore> asset_store;
+        std::unique_ptr<EventBus> event_bus;
 
     public:
         Game();

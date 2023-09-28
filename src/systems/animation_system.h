@@ -1,5 +1,5 @@
-#ifndef animation_system_h
-#define animation_system_h
+#ifndef ANIMATION_SYSTEM_H
+#define ANIMATION_SYSTEM_H
 
 #include "../ecs/ecs.h"
 #include "../components/animation_component.h"
