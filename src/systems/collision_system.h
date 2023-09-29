@@ -2,6 +2,8 @@
 #define COLLISION_SYSTEM_H
 
 #include "../ecs/ecs.h"
+#include "../event_bus/event_bus.h"
+#include "../events/collision_event.h"
 #include "../components/box_collider_component.h"
 #include "../components/transform_component.h"
 
@@ -25,7 +27,7 @@ class CollisionSystem: public System {
             );
         }
 
-        void Update() {
+        void Update(std::unique_ptr<EventBus>& event_bus) {
             auto entities = get_system_entities();
 
             for (auto entity: entities) {
@@ -47,6 +49,11 @@ class CollisionSystem: public System {
 
                     auto b_transform = b.get_component<TransformComponent>();
                     auto& b_collider = b.get_component<BoxColliderComponent>();
+
+                    // check if collider entity_ignore_id is set and if so, ignore collisions with that entity
+                    if (a_collider.entity_ignore_id == std::to_string(b.get_id()) || b_collider.entity_ignore_id == std::to_string(a.get_id())) {
+                        continue;
+                    }
                     
                     bool collision_happened = check_collision(
                         a_transform.position + a_collider.offset,
@@ -59,10 +66,7 @@ class CollisionSystem: public System {
 
                     if (collision_happened) {
                         Logger::Log("Entity " + std::to_string(a.get_id()) + " collided with entity " + std::to_string(b.get_id()) + ".");
-                        a_collider.is_colliding = true;
-                        b_collider.is_colliding = true;
-
-                        //TODO: emit an event here
+                        event_bus->emit_event<CollisionEvent>(a, b);
                     }
                     
                 }
@@ -70,7 +74,7 @@ class CollisionSystem: public System {
         }
 
         // render bounding boxes, using the red color to indicate collision or white to indicate no collision
-        void Debug(SDL_Renderer* renderer) {
+        void ColliderDebug(SDL_Renderer* renderer, SDL_Rect& camera) {
             const auto entities = get_system_entities();
             for (auto entity: entities) {
                 auto& transform = entity.get_component<TransformComponent>();
@@ -83,8 +87,8 @@ class CollisionSystem: public System {
                 }
 
                 SDL_Rect collider_rect = {
-                    static_cast<int>(transform.position.x + collider.offset.x),
-                    static_cast<int>(transform.position.y + collider.offset.y),
+                    static_cast<int>(transform.position.x + collider.offset.x - camera.x),
+                    static_cast<int>(transform.position.y + collider.offset.y - camera.y),
                     static_cast<int>(collider.width * transform.scale.x),
                     static_cast<int>(collider.height * transform.scale.y)
                 };

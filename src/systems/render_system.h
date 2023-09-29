@@ -14,7 +14,7 @@ class RenderSystem: public System {
             require_component<SpriteComponent>();
         }
 
-        void Update(SDL_Renderer* renderer, std::unique_ptr<AssetStore>& asset_store) {
+        void Update(SDL_Renderer* renderer, std::unique_ptr<AssetStore>& asset_store, SDL_Rect& camera) {
             struct RenderableEntity {
                 TransformComponent transform_component;
                 SpriteComponent sprite_component;
@@ -35,8 +35,8 @@ class RenderSystem: public System {
                     const auto sprite = entity.sprite_component;
                     SDL_Rect src_rect = sprite.src_rect;
                     SDL_Rect dst_rect = {
-                        static_cast<int>(transform.position.x),
-                        static_cast<int>(transform.position.y),
+                        static_cast<int>(transform.position.x - (sprite.is_fixed ? 0 : camera.x)),
+                        static_cast<int>(transform.position.y - (sprite.is_fixed ? 0 : camera.y)),
                         static_cast<int>(sprite.width * transform.scale.x),
                         static_cast<int>(sprite.height * transform.scale.y)
                     };

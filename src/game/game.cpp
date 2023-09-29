@@ -11,12 +11,21 @@
 #include "../components/box_collider_component.h"
 #include "../components/sprite_component.h"
 #include "../components/animation_component.h"
+#include "../components/keyboard_controlled_component.h"
+#include "../components/camera_follow_component.h"
+#include "../components/projectile_emitter_component.h"
+#include "../components/health_component.h"
 
 // systems
 #include "../systems/movement_system.h"
 #include "../systems/render_system.h"
 #include "../systems/animation_system.h"
 #include "../systems/collision_system.h"
+#include "../systems/damage_system.h"
+#include "../systems/keyboard_control_system.h"
+#include "../systems/camera_movement_system.h"
+#include "../systems/projectile_emit_system.h"
+#include "../systems/projectile_lifecycle_system.h"
 
 // Others
 #include "../ecs/ecs.h"
@@ -29,10 +38,16 @@
 #include <fstream>
 #include <sstream>
 
+int Game::window_width;
+int Game::window_height;
+int Game::map_width;
+int Game::map_height;
+
 Game::Game() {
     is_running = false;
     registry = std::make_unique<Registry>();
     asset_store = std::make_unique<AssetStore>();
+    event_bus = std::make_unique<EventBus>();
     Logger::Log("Game constructor called.");
 }
 
@@ -50,17 +65,17 @@ void Game::Initialize(void) {
     // full screen
     SDL_DisplayMode displayMode;
     SDL_GetCurrentDisplayMode(0, &displayMode);
-   //int win_width = FULL_SCREEN ? displayMode.w : WINDOW_WIDTH;
-   //int win_height = FULL_SCREEN ? displayMode.h : WINDOW_HEIGHT;
+    window_width = FULL_SCREEN ? displayMode.w : WINDOW_WIDTH;
+    window_height = FULL_SCREEN ? displayMode.h : WINDOW_HEIGHT;
 
-    // Logger::Log("Window width: " + std::to_string(win_width));
-    // Logger::Log("Window height: " + std::to_string(win_height));
+    //Logger::Log("Window width: " + std::to_string(window_width));
+    //Logger::Log("Window height: " + std::to_string(window_height));
     window = SDL_CreateWindow(
         NULL,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
+        window_width,
+        window_height,
         SDL_WINDOW_BORDERLESS
     );
 
@@ -84,6 +99,9 @@ void Game::Initialize(void) {
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
+    // initialize the camera view with the entire screen area
+    camera = {0, 0, window_width, window_height};
+
     is_running = true;
 
 }
@@ -97,31 +115,16 @@ void Game::ProcessInput(void) {
                 is_running = false;
                 break;
             case SDL_KEYDOWN:
-                if (sdl_event.key.keysym.sym == SDLK_ESCAPE)
+                if (sdl_event.key.keysym.sym == SDLK_ESCAPE) {
                     is_running = false;
+                }
                 // toggle debug mode
-                if (sdl_event.key.keysym.sym == SDLK_d)
+                if (sdl_event.key.keysym.sym == SDLK_d && (SDL_GetModState() & KMOD_CTRL)) {
                     Logger::Log("Debug mode toggled. Debug mode is now " + std::to_string(is_debug) + ".");
                     is_debug = !is_debug;
-                // if (sdl_event.key.keysym.sym == SDLK_w)
-                    
-                // if (sdl_event.key.keysym.sym == SDLK_s)
-                    
-                // if (sdl_event.key.keysym.sym == SDLK_a)
-                    
-                // if (sdl_event.key.keysym.sym == SDLK_d)
-                    
+                }
+                event_bus->emit_event<KeyPressedEvent>(sdl_event.key.keysym.sym);
                 break;
-            // case SDL_KEYUP:
-            //     if (sdl_event.key.keysym.sym == SDLK_w)
-                    
-            //     if (sdl_event.key.keysym.sym == SDLK_s)
-                    
-            //     if (sdl_event.key.keysym.sym == SDLK_a)
-                    
-            //     if (sdl_event.key.keysym.sym == SDLK_d)
-                    
-            //     break;
         } 
     }
 }
@@ -141,6 +144,9 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
         }
         tile_data.push_back(row);
     }
+
+    map_width = tile_data[0].size() * scale;
+    map_height = tile_data.size() * scale;
     
     for (int y = 0; y < tile_data.size(); ++y) {
         for (int x = 0; x < tile_data[y].size(); ++x) {
@@ -168,13 +174,19 @@ void Game::LoadLevel(int level_number) {
     registry->add_system<RenderSystem>();
     registry->add_system<AnimationSystem>();
     registry->add_system<CollisionSystem>();
+    registry->add_system<DamageSystem>();
+    registry->add_system<KeyboardControlSystem>();
+    registry->add_system<CameraMovementSystem>();
+    registry->add_system<ProjectileEmitSystem>();
+    registry->add_system<ProjectileLifecycleSystem>();
 
     // Adding assets to the asset store
     asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png");
     asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png");
     asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png");
-    asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper.png");
+    asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png");
     asset_store->add_texture(renderer, "radar-image", "./assets/images/radar.png");
+    asset_store->add_texture(renderer, "bullet-image", "./assets/images/bullet.png");
     
     // loading the tilemap
     LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
@@ -188,25 +200,34 @@ void Game::LoadLevel(int level_number) {
 
     //create some entities
     Entity chopper = registry->create_entity();
-    chopper.add_component<TransformComponent>(glm::vec2(100.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    chopper.add_component<TransformComponent>(glm::vec2(100.0, 10.0), glm::vec2(1.0, 1.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
     chopper.add_component<AnimationComponent>(2, 15, true);
-    chopper.add_component<BoxColliderComponent>(24, 24, glm::vec2(8.0, 8.0));
+    chopper.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
+    chopper.add_component<KeyboardControlledComponent>(glm::vec2(0.0, -80.0),glm::vec2(80.0, 0.0), glm::vec2(0.0, 80.0), glm::vec2(-80.0, 0.0));
+    chopper.add_component<ProjectileEmitterComponent>(glm::vec2(150.0, 150.0), 0, 10000, 0, true);
+    chopper.add_component<CameraFollowComponent>();
+    chopper.add_component<HealthComponent>(100);
+
 
     // add tank entity
     Entity tank = registry->create_entity();
     tank.add_component<TransformComponent>(glm::vec2(500.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
-    tank.add_component<RigidBodyComponent>(glm::vec2(-30.0, 0.0));
+    tank.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
-    tank.add_component<BoxColliderComponent>(24, 24, glm::vec2(8.0, 8.0));
+    tank.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
+    //tank.add_component<ProjectileEmitterComponent>(glm::vec2(100.0, 0.0), 5000, 10000, 0, false);
+    tank.add_component<HealthComponent>(100);
 
     // add truck entity
     Entity truck = registry->create_entity();
     truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
-    truck.add_component<RigidBodyComponent>(glm::vec2(25.0, 0.0));
+    truck.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
-    truck.add_component<BoxColliderComponent>(24, 24, glm::vec2(8.0, 8.0));
+    truck.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
+    //truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, 100.0), 500, 5000, 0, false);
+    truck.add_component<HealthComponent>(100);
 
 }
 
@@ -226,15 +247,22 @@ void Game::TimeDo(void) {
 void Game::Update(void) {
     TimeDo();
 
-    registry->get_system<MovementSystem>().Update(delta_time);
-    registry->get_system<AnimationSystem>().Update();
-    registry->get_system<CollisionSystem>().Update();
+    // reset all event handlers for the current frame
+    event_bus->reset();
 
-    // update the registry to process any entities that are waiting to be added/removed
+    // subscribe to events
+    registry->get_system<DamageSystem>().subscribe_to_events(event_bus);
+    registry->get_system<KeyboardControlSystem>().subscribe_to_events(event_bus);
+    registry->get_system<ProjectileEmitSystem>().subscribe_to_events(event_bus);
+     // update the registry to process any entities that are waiting to be added/removed
     registry->Update();
 
-    // registry->get_system<CollisionSystem>().Update();
-    // DamageSystem.Update();
+    registry->get_system<MovementSystem>().Update(delta_time);
+    registry->get_system<AnimationSystem>().Update();
+    registry->get_system<CollisionSystem>().Update(event_bus);
+    registry->get_system<ProjectileEmitSystem>().Update(registry);
+    registry->get_system<CameraMovementSystem>().Update(camera, map_width, map_height);
+    registry->get_system<ProjectileLifecycleSystem>().Update(camera);
 }
 
 void Game::Render(void) {
@@ -242,10 +270,10 @@ void Game::Render(void) {
     SDL_RenderClear(renderer);
 
     // invoke all of the systems that need to render
-    registry->get_system<RenderSystem>().Update(renderer, asset_store);
+    registry->get_system<RenderSystem>().Update(renderer, asset_store, camera);
     // a system that renders the bounding boxes of the colliders for debugging
     if (is_debug) {
-        registry->get_system<CollisionSystem>().Debug(renderer);
+        registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);
     }
 
     SDL_RenderPresent(renderer);

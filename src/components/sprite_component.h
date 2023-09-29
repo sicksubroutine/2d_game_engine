@@ -9,6 +9,7 @@ enum SpriteLayer {
     DECORATION_LAYER,
     GROUND_LAYER,
     AIR_LAYER,
+    BULLET_LAYER,
     PLAYER_LAYER,
     GUI_LAYER
 };
@@ -18,6 +19,7 @@ struct SpriteComponent {
     int width;
     int height;
     SpriteLayer layer;
+    bool is_fixed;
     SDL_Rect src_rect;
 
     SpriteComponent(std::string asset_id ="", int width = 0, int height = 0, SpriteLayer layer = BACKGROUND_LAYER, int src_rect_x = 0, int src_rect_y = 0) {
@@ -25,6 +27,7 @@ struct SpriteComponent {
         this->width = width;
         this->height = height;
         this->layer = layer;
+        this->is_fixed = layer == GUI_LAYER ? true : false;
         this->src_rect = {src_rect_x, src_rect_y, width, height};
     }
 };

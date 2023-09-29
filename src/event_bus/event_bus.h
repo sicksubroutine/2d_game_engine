@@ -50,7 +50,13 @@ class EventBus {
         }
         ~EventBus() {
             Logger::Log("EventBus destroyed.");
-        }   
+        }
+
+        // clears the subscribers list
+        void reset() {
+            subscribers.clear();
+        }
+
         /////////////////////////////////////////////////////////////////////////////////////////////////
         // subscribe to event type <T>
         // in our implementation, a listener subscribes to an event type by providing a callback function
@@ -58,7 +64,7 @@ class EventBus {
         // Example EventBus->SubscribeToEvent<CollisionEvent>(this, &Game::OnCollision);
         /////////////////////////////////////////////////////////////////////////////////////////////////
         template <typename TEvent, typename TOwner>
-        void subscribe_to_event (TOwner* owner_instance, void (TOwner::*callback_function)(TEvent&)) {
+        void subscribe_to_event(TOwner* owner_instance, void (TOwner::*callback_function)(TEvent&)) {
             if (!subscribers[typeid(TEvent)].get()) {
                 subscribers[typeid(TEvent)] = std::make_unique<HandlerList>();
             }
