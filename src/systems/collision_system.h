@@ -27,12 +27,14 @@ class CollisionSystem: public System {
             );
         }
 
-        void Update(std::unique_ptr<EventBus>& event_bus) {
+        void Update(std::unique_ptr<EventBus>& event_bus, bool is_debug) {
             auto entities = get_system_entities();
 
-            for (auto entity: entities) {
-                auto& collider = entity.get_component<BoxColliderComponent>();
-                collider.is_colliding = false;
+            if (is_debug) {
+                for (auto entity: entities) {
+                    auto& collider = entity.get_component<BoxColliderComponent>();
+                    collider.is_colliding = false;
+                }
             }
             
             for (auto i = entities.begin(); i != entities.end(); i++) {
@@ -49,11 +51,6 @@ class CollisionSystem: public System {
 
                     auto b_transform = b.get_component<TransformComponent>();
                     auto& b_collider = b.get_component<BoxColliderComponent>();
-
-                    // check if collider entity_ignore_id is set and if so, ignore collisions with that entity
-                    if (a_collider.entity_ignore_id == std::to_string(b.get_id()) || b_collider.entity_ignore_id == std::to_string(a.get_id())) {
-                        continue;
-                    }
                     
                     bool collision_happened = check_collision(
                         a_transform.position + a_collider.offset,
@@ -65,7 +62,9 @@ class CollisionSystem: public System {
                     );
 
                     if (collision_happened) {
-                        Logger::Log("Entity " + std::to_string(a.get_id()) + " collided with entity " + std::to_string(b.get_id()) + ".");
+                        if (is_debug) {
+                            Logger::Log("Entity " + std::to_string(a.get_id()) + " collided with entity " + std::to_string(b.get_id()) + ".");
+                        }
                         event_bus->emit_event<CollisionEvent>(a, b);
                     }
                     
@@ -77,8 +76,8 @@ class CollisionSystem: public System {
         void ColliderDebug(SDL_Renderer* renderer, SDL_Rect& camera) {
             const auto entities = get_system_entities();
             for (auto entity: entities) {
-                auto& transform = entity.get_component<TransformComponent>();
-                auto& collider = entity.get_component<BoxColliderComponent>();
+                const auto transform = entity.get_component<TransformComponent>();
+                const auto collider = entity.get_component<BoxColliderComponent>();
         
                 if (collider.is_colliding) {
                     color = red;

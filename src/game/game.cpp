@@ -162,6 +162,7 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
             src_rect.h = tile_size;
 
             Entity tile_entity = registry->create_entity();
+            tile_entity.Group("tiles");
             tile_entity.add_component<TransformComponent>(glm::vec2(x * (scale), y * (scale)), glm::vec2(tile_scale, tile_scale), 0.0);
             tile_entity.add_component<SpriteComponent>(asset_id, tile_size, tile_size, BACKGROUND_LAYER, src_rect.x, src_rect.y);
         }
@@ -181,18 +182,19 @@ void Game::LoadLevel(int level_number) {
     registry->add_system<ProjectileLifecycleSystem>();
 
     // Adding assets to the asset store
-    asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png");
-    asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png");
-    asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png");
-    asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png");
-    asset_store->add_texture(renderer, "radar-image", "./assets/images/radar.png");
-    asset_store->add_texture(renderer, "bullet-image", "./assets/images/bullet.png");
+    asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png", false);
+    asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png", true);
+    asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png", true);
+    asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png", true);
+    asset_store->add_texture(renderer, "radar-image", "./assets/images/radar.png", true);
+    asset_store->add_texture(renderer, "bullet-image", "./assets/images/bullet.png", true);
     
     // loading the tilemap
     LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
 
     // create the radar entity
     Entity radar = registry->create_entity();
+    radar.Group("GUI");
     radar.add_component<TransformComponent>(glm::vec2(WINDOW_WIDTH-74, 10.0), glm::vec2(1.0, 1.0), 0.0);
     radar.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     radar.add_component<SpriteComponent>("radar-image", 64, 64, GUI_LAYER);
@@ -200,35 +202,37 @@ void Game::LoadLevel(int level_number) {
 
     //create some entities
     Entity chopper = registry->create_entity();
+    chopper.Tag("player");
     chopper.add_component<TransformComponent>(glm::vec2(100.0, 10.0), glm::vec2(1.0, 1.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
     chopper.add_component<AnimationComponent>(2, 15, true);
     chopper.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
     chopper.add_component<KeyboardControlledComponent>(glm::vec2(0.0, -80.0),glm::vec2(80.0, 0.0), glm::vec2(0.0, 80.0), glm::vec2(-80.0, 0.0));
-    chopper.add_component<ProjectileEmitterComponent>(glm::vec2(150.0, 150.0), 0, 10000, 0, true);
+    chopper.add_component<ProjectileEmitterComponent>(glm::vec2(150.0, 150.0), 0, 10000, 10, true);
     chopper.add_component<CameraFollowComponent>();
     chopper.add_component<HealthComponent>(100);
 
 
     // add tank entity
     Entity tank = registry->create_entity();
+    tank.Group("enemies");
     tank.add_component<TransformComponent>(glm::vec2(500.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
     tank.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
     tank.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
-    //tank.add_component<ProjectileEmitterComponent>(glm::vec2(100.0, 0.0), 5000, 10000, 0, false);
+    tank.add_component<ProjectileEmitterComponent>(glm::vec2(-100.0, 0.0), 5000, 10000, 10, false);
     tank.add_component<HealthComponent>(100);
 
     // add truck entity
     Entity truck = registry->create_entity();
+    truck.Group("enemies");
     truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
     truck.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
     truck.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
-    //truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, 100.0), 500, 5000, 0, false);
+    truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, 100.0), 1000, 5000, 10, false);
     truck.add_component<HealthComponent>(100);
-
 }
 
 void Game::Setup(void) {
@@ -259,7 +263,7 @@ void Game::Update(void) {
 
     registry->get_system<MovementSystem>().Update(delta_time);
     registry->get_system<AnimationSystem>().Update();
-    registry->get_system<CollisionSystem>().Update(event_bus);
+    registry->get_system<CollisionSystem>().Update(event_bus, is_debug);
     registry->get_system<ProjectileEmitSystem>().Update(registry);
     registry->get_system<CameraMovementSystem>().Update(camera, map_width, map_height);
     registry->get_system<ProjectileLifecycleSystem>().Update(camera);
@@ -270,7 +274,7 @@ void Game::Render(void) {
     SDL_RenderClear(renderer);
 
     // invoke all of the systems that need to render
-    registry->get_system<RenderSystem>().Update(renderer, asset_store, camera);
+    registry->get_system<RenderSystem>().Render(renderer, asset_store, camera);
     // a system that renders the bounding boxes of the colliders for debugging
     if (is_debug) {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);

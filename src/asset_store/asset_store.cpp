@@ -19,16 +19,48 @@ void AssetStore::clear_assets() {
     textures.clear();
 }
 
-void AssetStore::add_texture(SDL_Renderer* renderer, std::string asset_id, const std::string& file_path) {
+void AssetStore::add_texture(SDL_Renderer* renderer, std::string asset_id, const std::string& file_path, bool get_white) {
     Logger::Log("Adding texture to asset store with id: " + asset_id);
     SDL_Surface* surface = IMG_Load(file_path.c_str());
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
+    
+    // Create a white version of the texture and store it as "asset_id + "_white"
+    // This white texture is for a "hit flash" effect when an entity is hit
+    if (get_white) {
+        SDL_Surface* whiteSurface = ConvertToWhite(surface);
+        SDL_Texture* whiteTexture = SDL_CreateTextureFromSurface(renderer, whiteSurface);
+        SDL_FreeSurface(whiteSurface);
+        textures.emplace(asset_id + "_white", whiteTexture);
+    }
 
-    // add the texture to the map
+    SDL_FreeSurface(surface);
     textures.emplace(asset_id, texture);
 }
 
+SDL_Surface* AssetStore::ConvertToWhite(SDL_Surface* originalSurface) {
+    SDL_Surface* whiteSurface = SDL_ConvertSurface(originalSurface, originalSurface->format, 0);
+    if (!whiteSurface) {
+        Logger::Err("Surface conversion failed!");
+        return nullptr; // Surface conversion failed.
+    }
+
+    Uint32* pixels = (Uint32*)whiteSurface->pixels;
+    Uint32 white = SDL_MapRGBA(whiteSurface->format, 255, 255, 255, 255);
+
+    for (int i = 0; i < whiteSurface->w * whiteSurface->h; ++i) {
+        Uint32 alpha = pixels[i] & 0xFF000000;
+        if (alpha != 0) {  // Skip transparent pixels
+            pixels[i] = white | alpha;
+        }
+    }
+
+    return whiteSurface;
+}
+
 SDL_Texture* AssetStore::get_texture(const std::string& asset_id) {
+    if (textures.find(asset_id) == textures.end()) {
+        Logger::Err("Texture not found in asset store with id: " + asset_id);
+        return nullptr;
+    }
     return textures.at(asset_id);
 }

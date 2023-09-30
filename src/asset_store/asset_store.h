@@ -15,8 +15,9 @@ class AssetStore {
         ~AssetStore();
 
         void clear_assets();
-        void add_texture(SDL_Renderer* renderer, std::string asset_id, const std::string& file_path);
+        void add_texture(SDL_Renderer* renderer, std::string asset_id, const std::string& file_path, bool get_white);
         SDL_Texture* get_texture(const std::string& asset_id);
+        SDL_Surface* ConvertToWhite(SDL_Surface* originalSurface);
         
 };
 

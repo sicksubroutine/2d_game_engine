@@ -25,9 +25,8 @@ class ProjectileEmitSystem: public System {
 
         void on_key_pressed(KeyPressedEvent& event) {
             if (event.symbol == SDLK_SPACE) {
-                Logger::Log("Space key pressed");
                 for (auto entity: get_system_entities()) {
-                    if (entity.has_component<CameraFollowComponent>()) {
+                    if (entity.HasTag("player")) {
                         const auto projectile_emitter = entity.get_component<ProjectileEmitterComponent>();
                         const auto transform = entity.get_component<TransformComponent>();
                         const auto rigid_body = entity.get_component<RigidBodyComponent>();
@@ -48,14 +47,9 @@ class ProjectileEmitSystem: public System {
                         if (rigid_body.velocity.y < 0) dir_y = -1;
                         projectile_velocity.x = projectile_emitter.projectile_velocity.x * dir_x;
                         projectile_velocity.y = projectile_emitter.projectile_velocity.y * dir_y;
-
+                        
                         Entity projectile = entity.registry->create_entity();
-                        std::string entity_id = std::to_string(entity.get_id());
-                        projectile.add_component<TransformComponent>(projectile_position, glm::vec2(1.0, 1.0), 0.0);
-                        projectile.add_component<RigidBodyComponent>(projectile_velocity);
-                        projectile.add_component<SpriteComponent>("bullet-image", 4,4, BULLET_LAYER);
-                        projectile.add_component<BoxColliderComponent>(4, 4, glm::vec2(0), false, entity_id);
-                        projectile.add_component<ProjectileComponent>(projectile_emitter.is_friendly, projectile_emitter.hit_percent_damage, projectile_emitter.projectile_duration);
+                        projectile_do(projectile, projectile_position, projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_percent_damage, projectile_emitter.projectile_duration);
                     }
                 }   
             }
@@ -77,16 +71,21 @@ class ProjectileEmitSystem: public System {
                         projectile_position.y += (transform.scale.y * sprite.height / 2);
                     }
                     Entity projectile = registry->create_entity();
-                    std::string entity_id = std::to_string(entity.get_id());
-                    projectile.add_component<TransformComponent>(projectile_position, glm::vec2(1.0, 1.0), 0.0);
-                    projectile.add_component<RigidBodyComponent>(projectile_emitter.projectile_velocity);
-                    projectile.add_component<SpriteComponent>("bullet-image", 4,4, BULLET_LAYER);
-                    projectile.add_component<BoxColliderComponent>(4, 4, glm::vec2(0), false, entity_id);
-                    projectile.add_component<ProjectileComponent>(projectile_emitter.is_friendly, projectile_emitter.hit_percent_damage, projectile_emitter.projectile_duration);
+                    projectile_do(projectile, projectile_position, projectile_emitter.projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_percent_damage, projectile_emitter.projectile_duration);
+                    
                     // update the last emission time
                     projectile_emitter.last_emission_time = SDL_GetTicks();
                 }
             }
+        }
+
+        void projectile_do(Entity projectile, glm::vec2 position, glm::vec2 velocity, bool is_friendly, double hit_percent_damage, int duration) {
+            projectile.Group("projectiles");
+            projectile.add_component<TransformComponent>(position, glm::vec2(1.0, 1.0), 0.0);
+            projectile.add_component<RigidBodyComponent>(velocity);
+            projectile.add_component<SpriteComponent>("bullet-image", 4,4, BULLET_LAYER);
+            projectile.add_component<BoxColliderComponent>(4, 4, glm::vec2(0), false);
+            projectile.add_component<ProjectileComponent>(is_friendly, hit_percent_damage, duration);
         }
 };
 
