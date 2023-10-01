@@ -13,10 +13,18 @@ AssetStore::~AssetStore() {
 
 void AssetStore::clear_assets() {
     Logger::Log("Clearing assets...");
+    
+    // Clear textures
     for (auto texture : textures) {
         SDL_DestroyTexture(texture.second);
     }
     textures.clear();
+
+    // Clear fonts
+    for (auto font : fonts) {
+        TTF_CloseFont(font.second);
+    }
+    fonts.clear();
 }
 
 void AssetStore::add_texture(SDL_Renderer* renderer, std::string asset_id, const std::string& file_path, bool get_white) {
@@ -55,6 +63,24 @@ SDL_Surface* AssetStore::ConvertToWhite(SDL_Surface* originalSurface) {
     }
 
     return whiteSurface;
+}
+
+void AssetStore::add_font(const std::string asset_id, const std::string& file_path, int font_size) {
+    Logger::Log("Adding font to asset store with id: " + asset_id);
+    TTF_Font* font = TTF_OpenFont(file_path.c_str(), font_size);
+    // if (!font) {
+    //     Logger::Err("Failed to load font: " + file_path);
+    //     return;
+    // }
+    fonts.emplace(asset_id, font);
+}
+
+TTF_Font* AssetStore::get_font(const std::string& asset_id) {
+    if (fonts.find(asset_id) == fonts.end()) {
+        Logger::Err("Font not found in asset store with id: " + asset_id);
+        return nullptr;
+    }
+    return fonts.at(asset_id);
 }
 
 SDL_Texture* AssetStore::get_texture(const std::string& asset_id) {

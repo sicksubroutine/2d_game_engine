@@ -161,9 +161,15 @@ void Registry::Update() {
     for (auto entity: entities_to_be_killed){
         remove_entity_from_systems(entity);
         const auto entity_id = entity.get_id();
-
         entity_component_signatures[entity_id].reset();
         
+        // remove the entity from the component pools
+        for (auto pool: component_pools) {
+            if (pool) {
+                pool->remove_entity_from_pool(entity.get_id());
+            }
+        }
+
         // make the entity id available to be reused
         free_ids.push_back(entity_id);
 

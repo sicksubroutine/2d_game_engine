@@ -95,7 +95,8 @@ class System {
 ///////////////////////////
 class IPool {
     public:
-        virtual ~IPool() {}
+        virtual ~IPool() = default;
+        virtual void remove_entity_from_pool(int entity_id) = 0;
 };
 
 
@@ -103,10 +104,15 @@ template <typename T>
 class Pool: public IPool {
     private:
         std::vector<T> data;
+        int size;
+
+        std::unordered_map<int, int> entity_id_to_index;
+        std::unordered_map<int, int> index_to_entity_id;
 
     public:
-        Pool(int size = 100) {
-            data.resize(size);
+        Pool(int capacity = 100) {
+            size = 0;
+            data.resize(capacity);
         }
         
         virtual ~Pool() = default;
@@ -116,7 +122,7 @@ class Pool: public IPool {
         }
 
         int get_size() { 
-            return data.size(); 
+            return size; 
         }
 
         void resize(int n) { 
@@ -125,17 +131,55 @@ class Pool: public IPool {
 
         void clear() { 
             data.clear(); 
+            size = 0;
         }
 
         void add(T object) { 
             data.push_back(object); 
         }
 
-        void set(int index, T object) { 
-            data[index] = object; 
+        void set(int entity_id, T object) { 
+            if (entity_id_to_index.find(entity_id) != entity_id_to_index.end()) {
+                // if the element already exists, just update it
+                int index = entity_id_to_index[entity_id];
+                data[index] = object;
+            } else {
+                int index = size;
+                entity_id_to_index.emplace(entity_id, index);
+                index_to_entity_id.emplace(index, entity_id);
+                if (index >= data.capacity()) {
+                    data.resize(size * 2);
+                }
+                data[index] = object;
+                size++;
+            }
         }
 
-        T& get(int index) { 
+        void remove(int entity_id) { 
+            // swap the element to be removed with the last element to keep the data contiguous
+            int index_of_removed = entity_id_to_index[entity_id];
+            int index_of_last = size - 1;
+            data[index_of_removed] = data[index_of_last];
+
+            // update the index-entity_id maps to point to the correct elements
+            int entity_id_of_last = index_to_entity_id[index_of_last];
+            entity_id_to_index[entity_id_of_last] = index_of_removed;
+            index_to_entity_id[index_of_removed] = entity_id_of_last;
+
+            entity_id_to_index.erase(entity_id);
+            index_to_entity_id.erase(index_of_last);
+
+            size--;
+        }
+
+        void remove_entity_from_pool(int entity_id) override {
+            if (entity_id_to_index.find(entity_id) != entity_id_to_index.end()) {
+                remove(entity_id);
+            }
+        }
+
+        T& get(int entity_id) { 
+            int index = entity_id_to_index[entity_id];
             return static_cast<T&>(data[index]); 
         }
 
@@ -273,10 +317,6 @@ void Registry::add_component(Entity entity, TArgs&& ...args){
 
     std::shared_ptr<Pool<TComponent>> component_pool = std::static_pointer_cast<Pool<TComponent>>(component_pools[component_id]);
 
-    if (entity_id >= component_pool->get_size()) {
-        component_pool->resize(num_entities);
-    }
-
     TComponent new_component(std::forward<TArgs>(args)...);
 
     component_pool->set(entity_id, new_component);
@@ -290,6 +330,11 @@ template <typename TComponent>
 void Registry::remove_component(Entity entity) {
     const auto component_id = Component<TComponent>::get_id();
     const auto entity_id = entity.get_id();
+
+    // remove the component from the component pool
+    std::shared_ptr<Pool<TComponent>> component_pool = std::static_pointer_cast<Pool<TComponent>>(component_pools[component_id]);
+    component_pool->remove(entity_id);
+
     entity_component_signatures[entity_id].set(component_id, false);
 
     //Logger::Log("Component id = " + std::to_string(component_id) + " removed from entity id = " + std::to_string(entity_id));

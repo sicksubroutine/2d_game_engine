@@ -15,6 +15,7 @@
 #include "../components/camera_follow_component.h"
 #include "../components/projectile_emitter_component.h"
 #include "../components/health_component.h"
+#include "../components/text_label_component.h"
 
 // systems
 #include "../systems/movement_system.h"
@@ -26,6 +27,7 @@
 #include "../systems/camera_movement_system.h"
 #include "../systems/projectile_emit_system.h"
 #include "../systems/projectile_lifecycle_system.h"
+#include "../systems/render_text_system.h"
 
 // Others
 #include "../ecs/ecs.h"
@@ -34,9 +36,21 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include <glm/glm.hpp>
 #include <fstream>
 #include <sstream>
+
+const struct {
+    SDL_Color red = {255, 0, 0};
+    SDL_Color green = {0, 255, 0};
+    SDL_Color blue = {0, 0, 255};
+    SDL_Color white = {255, 255, 255};
+    SDL_Color black = {0, 0, 0};
+    SDL_Color yellow = {255, 255, 0};
+    SDL_Color magenta = {255, 0, 255};
+    SDL_Color cyan = {0, 255, 255};
+} col;
 
 int Game::window_width;
 int Game::window_height;
@@ -59,6 +73,11 @@ void Game::Initialize(void) {
     
     if (SDL_Init(SDL_INIT_EVERYTHING != 0)) {
         Logger::Err("Error initializing SDL.");
+        return;
+    }
+
+    if (TTF_Init() != 0) {
+        Logger::Err("Error initializing SDL TTF.");
         return;
     }
 
@@ -169,7 +188,7 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
     }
 }
 
-void Game::LoadLevel(int level_number) {
+void Game::LoadSystems() {
     // add the systems that need to be processed in our game
     registry->add_system<MovementSystem>();
     registry->add_system<RenderSystem>();
@@ -180,6 +199,14 @@ void Game::LoadLevel(int level_number) {
     registry->add_system<CameraMovementSystem>();
     registry->add_system<ProjectileEmitSystem>();
     registry->add_system<ProjectileLifecycleSystem>();
+    registry->add_system<RenderTextSystem>();
+}
+
+void Game::LoadAssets() {
+    // Add fonts to the asset store
+    asset_store->add_font("charriot-font", "./assets/fonts/charriot.ttf", 16);
+    asset_store->add_font("arial-font", "./assets/fonts/arial.ttf", 16);
+    asset_store->add_font("pico8-font", "./assets/fonts/pico8.ttf", 10);
 
     // Adding assets to the asset store
     asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png", false);
@@ -191,6 +218,16 @@ void Game::LoadLevel(int level_number) {
     
     // loading the tilemap
     LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
+}
+
+void Game::LoadLevel(int level_number) {
+    
+    LoadAssets();
+    LoadSystems();
+    
+    Entity label = registry->create_entity();
+    label.Group("GUI");
+    label.add_component<TextLabelComponent>(glm::vec2(window_width/2-40, 10), "CHOPPER 1.0", "pico8-font", col.green, true);
 
     // create the radar entity
     Entity radar = registry->create_entity();
@@ -203,7 +240,7 @@ void Game::LoadLevel(int level_number) {
     //create some entities
     Entity chopper = registry->create_entity();
     chopper.Tag("player");
-    chopper.add_component<TransformComponent>(glm::vec2(100.0, 10.0), glm::vec2(1.0, 1.0), 0.0);
+    chopper.add_component<TransformComponent>(glm::vec2(100.0, 100.0), glm::vec2(1.0, 1.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
     chopper.add_component<AnimationComponent>(2, 15, true);
@@ -217,21 +254,21 @@ void Game::LoadLevel(int level_number) {
     // add tank entity
     Entity tank = registry->create_entity();
     tank.Group("enemies");
-    tank.add_component<TransformComponent>(glm::vec2(500.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    tank.add_component<TransformComponent>(glm::vec2(500.0, 600.0), glm::vec2(2.0, 2.0), 0.0);
     tank.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
     tank.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
-    tank.add_component<ProjectileEmitterComponent>(glm::vec2(-100.0, 0.0), 5000, 10000, 10, false);
+    tank.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 5000, 10000, 25, false);
     tank.add_component<HealthComponent>(100);
 
     // add truck entity
     Entity truck = registry->create_entity();
     truck.Group("enemies");
-    truck.add_component<TransformComponent>(glm::vec2(10.0, 10.0), glm::vec2(2.0, 2.0), 0.0);
+    truck.add_component<TransformComponent>(glm::vec2(100.0, 475.0), glm::vec2(2.0, 2.0), 0.0);
     truck.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
     truck.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
-    truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, 100.0), 1000, 5000, 10, false);
+    truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 1000, 5000, 10, false);
     truck.add_component<HealthComponent>(100);
 }
 
@@ -275,6 +312,7 @@ void Game::Render(void) {
 
     // invoke all of the systems that need to render
     registry->get_system<RenderSystem>().Render(renderer, asset_store, camera);
+    registry->get_system<RenderTextSystem>().Render(renderer, asset_store, camera);
     // a system that renders the bounding boxes of the colliders for debugging
     if (is_debug) {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);

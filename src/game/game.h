@@ -33,6 +33,8 @@ class Game {
         void Initialize();
         void Run();
         void LoadLevel(int level_number);
+        void LoadSystems();
+        void LoadAssets();
         void LoadTileMap(std::string asset_id, std::string file_path, int tile_size, int tile_scale);
         void Setup();
         void ProcessInput();

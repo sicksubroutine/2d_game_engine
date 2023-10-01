@@ -3,8 +3,9 @@
 
 struct HealthComponent {
     int health_percentage;
+    bool is_god_mode;
 
-    HealthComponent(int health_percentage = 100) {
+    HealthComponent(int health_percentage = 100, bool is_god_mode = false) {
         this->health_percentage = health_percentage;
     }
 };
