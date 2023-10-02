@@ -28,6 +28,7 @@
 #include "../systems/projectile_emit_system.h"
 #include "../systems/projectile_lifecycle_system.h"
 #include "../systems/render_text_system.h"
+#include "../systems/health_bar_system.h"
 
 // Others
 #include "../ecs/ecs.h"
@@ -190,23 +191,25 @@ void Game::LoadTileMap(std::string asset_id, std::string file_path, int tile_siz
 
 void Game::LoadSystems() {
     // add the systems that need to be processed in our game
-    registry->add_system<MovementSystem>();
     registry->add_system<RenderSystem>();
-    registry->add_system<AnimationSystem>();
+    registry->add_system<RenderTextSystem>();
+    registry->add_system<MovementSystem>();
     registry->add_system<CollisionSystem>();
+    registry->add_system<AnimationSystem>();
     registry->add_system<DamageSystem>();
     registry->add_system<KeyboardControlSystem>();
     registry->add_system<CameraMovementSystem>();
     registry->add_system<ProjectileEmitSystem>();
     registry->add_system<ProjectileLifecycleSystem>();
-    registry->add_system<RenderTextSystem>();
+    registry->add_system<HealthBarSystem>();
 }
 
 void Game::LoadAssets() {
     // Add fonts to the asset store
     asset_store->add_font("charriot-font", "./assets/fonts/charriot.ttf", 16);
     asset_store->add_font("arial-font", "./assets/fonts/arial.ttf", 16);
-    asset_store->add_font("pico8-font", "./assets/fonts/pico8.ttf", 10);
+    asset_store->add_font("pico8-font-10", "./assets/fonts/pico8.ttf", 10);
+    asset_store->add_font("pico8-font-7", "./assets/fonts/pico8.ttf", 7);
 
     // Adding assets to the asset store
     asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png", false);
@@ -227,7 +230,7 @@ void Game::LoadLevel(int level_number) {
     
     Entity label = registry->create_entity();
     label.Group("GUI");
-    label.add_component<TextLabelComponent>(glm::vec2(window_width/2-40, 10), "CHOPPER 1.0", "pico8-font", col.green, true);
+    label.add_component<TextLabelComponent>(glm::vec2(window_width/2-40, 10), "CHOPPER 1.0", "pico8-font-10", col.green, true);
 
     // create the radar entity
     Entity radar = registry->create_entity();
@@ -240,7 +243,7 @@ void Game::LoadLevel(int level_number) {
     //create some entities
     Entity chopper = registry->create_entity();
     chopper.Tag("player");
-    chopper.add_component<TransformComponent>(glm::vec2(100.0, 100.0), glm::vec2(1.0, 1.0), 0.0);
+    chopper.add_component<TransformComponent>(glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
     chopper.add_component<AnimationComponent>(2, 15, true);
@@ -249,6 +252,7 @@ void Game::LoadLevel(int level_number) {
     chopper.add_component<ProjectileEmitterComponent>(glm::vec2(150.0, 150.0), 0, 10000, 10, true);
     chopper.add_component<CameraFollowComponent>();
     chopper.add_component<HealthComponent>(100);
+    chopper.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
 
     // add tank entity
@@ -260,6 +264,7 @@ void Game::LoadLevel(int level_number) {
     tank.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
     tank.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 5000, 10000, 25, false);
     tank.add_component<HealthComponent>(100);
+    tank.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
     // add truck entity
     Entity truck = registry->create_entity();
@@ -270,6 +275,7 @@ void Game::LoadLevel(int level_number) {
     truck.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
     truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 1000, 5000, 10, false);
     truck.add_component<HealthComponent>(100);
+    truck.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 }
 
 void Game::Setup(void) {
@@ -304,6 +310,7 @@ void Game::Update(void) {
     registry->get_system<ProjectileEmitSystem>().Update(registry);
     registry->get_system<CameraMovementSystem>().Update(camera, map_width, map_height);
     registry->get_system<ProjectileLifecycleSystem>().Update(camera);
+    registry->get_system<HealthBarSystem>().Update();
 }
 
 void Game::Render(void) {
@@ -313,6 +320,7 @@ void Game::Render(void) {
     // invoke all of the systems that need to render
     registry->get_system<RenderSystem>().Render(renderer, asset_store, camera);
     registry->get_system<RenderTextSystem>().Render(renderer, asset_store, camera);
+    
     // a system that renders the bounding boxes of the colliders for debugging
     if (is_debug) {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);

@@ -59,6 +59,7 @@ class RenderSystem: public System {
 
                     if (whiteTexture != nullptr) {
                         int alpha = 175;
+                        SDL_SetTextureColorMod(whiteTexture, 255, 128, 128);
                         SDL_SetTextureAlphaMod(whiteTexture, alpha);
                         SDL_RenderCopyEx(renderer, whiteTexture, &src_rect, &dst_rect, transform.rotation, NULL, SDL_FLIP_NONE);
                         SDL_SetTextureAlphaMod(whiteTexture, 255);

@@ -51,7 +51,11 @@ class CollisionSystem: public System {
 
                     auto b_transform = b.get_component<TransformComponent>();
                     auto& b_collider = b.get_component<BoxColliderComponent>();
-                    
+
+                    if (a_collider.belongs_to_entity_id == b.get_id() || b_collider.belongs_to_entity_id == a.get_id()) {
+                        continue;
+                    }
+                 
                     bool collision_happened = check_collision(
                         a_transform.position + a_collider.offset,
                         a_collider.width * a_transform.scale.x,
