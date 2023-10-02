@@ -29,8 +29,10 @@
 #include "../systems/projectile_lifecycle_system.h"
 #include "../systems/render_text_system.h"
 #include "../systems/health_bar_system.h"
+#include "../systems/render_gui_system.h"
 
 // Others
+#include "../utils/utils.h"
 #include "../ecs/ecs.h"
 #include "game.h"
 #include "../logger/logger.h"
@@ -39,19 +41,11 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <glm/glm.hpp>
+#include <imgui/imgui.h>
+#include <imgui/imgui_sdl.h>
+#include <imgui/imgui_impl_sdl.h>
 #include <fstream>
 #include <sstream>
-
-const struct {
-    SDL_Color red = {255, 0, 0};
-    SDL_Color green = {0, 255, 0};
-    SDL_Color blue = {0, 0, 255};
-    SDL_Color white = {255, 255, 255};
-    SDL_Color black = {0, 0, 0};
-    SDL_Color yellow = {255, 255, 0};
-    SDL_Color magenta = {255, 0, 255};
-    SDL_Color cyan = {0, 255, 255};
-} col;
 
 int Game::window_width;
 int Game::window_height;
@@ -109,19 +103,20 @@ void Game::Initialize(void) {
         -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
-
     if (!renderer) {
         Logger::Err("Error creating SDL renderer.");
         return;
     }
 
+    ImGui::CreateContext();
+    ImGuiSDL::Initialize(renderer, window_width, window_height);
+
     if (FULL_SCREEN){
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
-    // initialize the camera view with the entire screen area
+    // initialize some variables
     camera = {0, 0, window_width, window_height};
-
     is_running = true;
 
 }
@@ -129,6 +124,16 @@ void Game::Initialize(void) {
 void Game::ProcessInput(void) {
     SDL_Event sdl_event;
     while (SDL_PollEvent(&sdl_event)) {
+        // handle ImGui SDL events
+        ImGui_ImplSDL2_ProcessEvent(&sdl_event);
+        ImGuiIO& io = ImGui::GetIO();
+
+        int mouse_x, mouse_y;
+        const int buttons = SDL_GetMouseState(&mouse_x, &mouse_y);
+
+        io.MousePos = ImVec2(mouse_x, mouse_y);
+        io.MouseDown[0] = buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
+        io.MouseDown[1] = buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
         switch (sdl_event.type) {
             case SDL_QUIT:
@@ -140,8 +145,8 @@ void Game::ProcessInput(void) {
                 }
                 // toggle debug mode
                 if (sdl_event.key.keysym.sym == SDLK_d && (SDL_GetModState() & KMOD_CTRL)) {
-                    Logger::Log("Debug mode toggled. Debug mode is now " + std::to_string(is_debug) + ".");
                     is_debug = !is_debug;
+                    Logger::Log("Debug mode toggled. Debug mode is now " + std::string(is_debug ? "true" : "false") + ".");
                 }
                 event_bus->emit_event<KeyPressedEvent>(sdl_event.key.keysym.sym);
                 break;
@@ -202,12 +207,13 @@ void Game::LoadSystems() {
     registry->add_system<ProjectileEmitSystem>();
     registry->add_system<ProjectileLifecycleSystem>();
     registry->add_system<HealthBarSystem>();
+    registry->add_system<RenderGUISystem>();
 }
 
 void Game::LoadAssets() {
     // Add fonts to the asset store
     asset_store->add_font("charriot-font", "./assets/fonts/charriot.ttf", 16);
-    asset_store->add_font("arial-font", "./assets/fonts/arial.ttf", 16);
+    //asset_store->add_font("arial-font", "./assets/fonts/arial.ttf", 16);
     asset_store->add_font("pico8-font-10", "./assets/fonts/pico8.ttf", 10);
     asset_store->add_font("pico8-font-7", "./assets/fonts/pico8.ttf", 7);
 
@@ -243,6 +249,7 @@ void Game::LoadLevel(int level_number) {
     //create some entities
     Entity chopper = registry->create_entity();
     chopper.Tag("player");
+    chopper.Group("player");
     chopper.add_component<TransformComponent>(glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
@@ -271,18 +278,18 @@ void Game::LoadLevel(int level_number) {
     truck.Group("enemies");
     truck.add_component<TransformComponent>(glm::vec2(100.0, 475.0), glm::vec2(2.0, 2.0), 0.0);
     truck.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
-    truck.add_component<SpriteComponent>("truck-image", 32, 32, AIR_LAYER);
+    truck.add_component<SpriteComponent>("truck-image", 32, 32, GROUND_LAYER);
     truck.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
     truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 1000, 5000, 10, false);
     truck.add_component<HealthComponent>(100);
     truck.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 }
 
-void Game::Setup(void) {
+void Game::Setup() {
     LoadLevel(1);
 }
 
-void Game::TimeDo(void) {
+void Game::TimeDo() {
     int time_to_wait = MS_PER_FRAME - (SDL_GetTicks() - ms_prev_frame);
     if (time_to_wait > 0 && time_to_wait <= MS_PER_FRAME) {
         SDL_Delay(time_to_wait);
@@ -291,7 +298,7 @@ void Game::TimeDo(void) {
     ms_prev_frame = SDL_GetTicks();
 }
 
-void Game::Update(void) {
+void Game::Update() {
     TimeDo();
 
     // reset all event handlers for the current frame
@@ -313,23 +320,23 @@ void Game::Update(void) {
     registry->get_system<HealthBarSystem>().Update();
 }
 
-void Game::Render(void) {
+void Game::Render() {
     SDL_SetRenderDrawColor(renderer,21,21,21,255);
     SDL_RenderClear(renderer);
 
     // invoke all of the systems that need to render
     registry->get_system<RenderSystem>().Render(renderer, asset_store, camera);
     registry->get_system<RenderTextSystem>().Render(renderer, asset_store, camera);
-    
     // a system that renders the bounding boxes of the colliders for debugging
     if (is_debug) {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);
+        registry->get_system<RenderGUISystem>().Render(registry);
     }
 
     SDL_RenderPresent(renderer);
 }
 
-void Game::Run(void) {
+void Game::Run() {
     if (!window || !renderer) {
         Logger::Err("Error running game.");
         return;
@@ -342,7 +349,9 @@ void Game::Run(void) {
     }
 }
 
-void Game::Destroy(void) {
+void Game::Destroy() {
+    ImGuiSDL::Deinitialize();
+    ImGui::DestroyContext();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

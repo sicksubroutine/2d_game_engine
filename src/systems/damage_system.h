@@ -57,15 +57,17 @@ class DamageSystem: public System {
         void on_projectile_hits_player(Entity projectile, Entity player) {
             const auto projectile_component = projectile.get_component<ProjectileComponent>();
             auto& player_sprite = player.get_component<SpriteComponent>();
+            auto& health = player.get_component<HealthComponent>();
+    
             if (projectile_component.is_friendly){
                 return;
             }
             // kill the projectile
             projectile.Kill();
-
-            // add to the hit flash
             player_sprite.hit_flash = 7;
-            auto& health = player.get_component<HealthComponent>();
+            if (health.is_god_mode){
+                return;
+            }
             health.health_percentage -= projectile_component.hit_percent_damage;
 
             //Logger::Log("Player " + std::to_string(player.get_id()) + " health is now " + std::to_string(health.health_percentage) + ".");
@@ -77,6 +79,7 @@ class DamageSystem: public System {
 
         void on_projectile_hits_enemy(Entity projectile, Entity enemy) {
             const auto projectile_component = projectile.get_component<ProjectileComponent>();
+            auto& enemy_health = enemy.get_component<HealthComponent>();
 
             if (!projectile_component.is_friendly){
                 return;
@@ -86,9 +89,10 @@ class DamageSystem: public System {
 
             // kill the projectile
             projectile.Kill();
-            // add to the hit flash
             enemy_sprite.hit_flash = 7;
-            auto& enemy_health = enemy.get_component<HealthComponent>();
+            if (enemy_health.is_god_mode){
+                return;
+            }
             Logger::Log("Enemy health is " + std::to_string(enemy_health.health_percentage) + ".");
             enemy_health.health_percentage -= projectile_component.hit_percent_damage;
 

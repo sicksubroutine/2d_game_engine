@@ -102,6 +102,9 @@ bool Registry::entity_has_tag(Entity entity, const std::string& tag) const {
 }
 
 Entity Registry::get_entity_by_tag(const std::string& tag) const {
+    if (entity_per_tag.find(tag) == entity_per_tag.end()) {
+        return false;
+    }
     return entity_per_tag.at(tag);
 }
 
