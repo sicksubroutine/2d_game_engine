@@ -26,6 +26,7 @@ class Utils {
         static float Lerp(float start, float end, float time);
         static float InvLerp(float a, float b, float v);
         static float Remap(float a, float b, float c, float d, float v);
+        static int GetFPS();
 };
 
 #endif

@@ -24,14 +24,18 @@ class HealthBarSystem: public System {
                 const auto sprite = entity.get_component<SpriteComponent>();
                 auto& text_label = entity.get_component<TextLabelComponent>();
                 
-                float r = Utils::Remap(0, 100, 255, 0, health.health_percentage);
-                float g = Utils::Remap(0, 100, 0, 255, health.health_percentage);
+                int current_health = health.current_health;
+                int max_health = health.max_health;
+                int health_percentage = std::round(static_cast<float>(current_health) / static_cast<float>(max_health) * 100.0);
+                
+                float r = Utils::Remap(0, 100, 255, 0, health_percentage);
+                float g = Utils::Remap(0, 100, 0, 255, health_percentage);
 
                 SDL_Color color = {static_cast<Uint8>(r), static_cast<Uint8>(g), 0};
 
-                glm::vec2 health_bar_pos = glm::vec2(transform.position.x + (sprite.width * transform.scale.x), transform.position.y);
+                glm::vec2 health_bar_pos = glm::vec2(transform.position.x + (sprite.width * transform.scale.x)+2, transform.position.y);
                 text_label.position = health_bar_pos;
-                text_label.text = std::to_string(health.health_percentage);;
+                text_label.text = std::to_string(health_percentage);;
                 text_label.color = color;
             }
         }

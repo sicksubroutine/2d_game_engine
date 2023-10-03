@@ -21,6 +21,8 @@ class Logger {
         static void Log(const std::string& message);
         static void Warn(const std::string& message);
         static void Err(const std::string& message);
+        static std::vector<LogEntry> get_logs();
+        static void clear_logs();
 
     private:
         static void write_to_file(const std::string& message);

@@ -50,7 +50,7 @@ class ProjectileEmitSystem: public System {
                         
                         Entity projectile = entity.registry->create_entity();
                         auto entity_id = entity.get_id();
-                        projectile_do(projectile, projectile_position, projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_percent_damage, projectile_emitter.projectile_duration, entity_id);
+                        projectile_do(projectile, projectile_position, projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_damage, projectile_emitter.projectile_duration, entity_id);
                     }
                 }   
             }
@@ -73,7 +73,7 @@ class ProjectileEmitSystem: public System {
                     }
                     auto entity_id = entity.get_id();
                     Entity projectile = registry->create_entity();
-                    projectile_do(projectile, projectile_position, projectile_emitter.projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_percent_damage, projectile_emitter.projectile_duration, entity_id);
+                    projectile_do(projectile, projectile_position, projectile_emitter.projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_damage, projectile_emitter.projectile_duration, entity_id);
                     
                     // update the last emission time
                     projectile_emitter.last_emission_time = SDL_GetTicks();
@@ -81,13 +81,13 @@ class ProjectileEmitSystem: public System {
             }
         }
 
-        void projectile_do(Entity projectile, glm::vec2 position, glm::vec2 velocity, bool is_friendly, double hit_percent_damage, int duration, int belongs_to_entity_id = -1) {
+        void projectile_do(Entity projectile, glm::vec2 position, glm::vec2 velocity, bool is_friendly, double hit_damage, int duration, int belongs_to_entity_id = -1) {
             projectile.Group("projectiles");
             projectile.add_component<TransformComponent>(position, glm::vec2(1.0, 1.0), 0.0);
             projectile.add_component<RigidBodyComponent>(velocity);
             projectile.add_component<SpriteComponent>("bullet-image", 4,4, BULLET_LAYER);
             projectile.add_component<BoxColliderComponent>(4, 4, glm::vec2(0), false, belongs_to_entity_id);
-            projectile.add_component<ProjectileComponent>(is_friendly, hit_percent_damage, duration);
+            projectile.add_component<ProjectileComponent>(is_friendly, hit_damage, duration);
         }
 };
 

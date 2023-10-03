@@ -46,3 +46,17 @@ float Utils::Remap(float a, float b, float c, float d, float v) {
     float t = InvLerp(a, b, v);
     return Lerp(c, d, t);
 }
+
+int Utils::GetFPS() {
+    static int frame_count = 0;
+    static int fps = 0;
+    static int last_time = 0;
+    int current_time = SDL_GetTicks();
+    frame_count++;
+    if (current_time > last_time + 1000) {
+        last_time = current_time;
+        fps = frame_count;
+        frame_count = 0;
+    }
+    return fps;
+}

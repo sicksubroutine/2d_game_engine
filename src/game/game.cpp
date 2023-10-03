@@ -250,15 +250,15 @@ void Game::LoadLevel(int level_number) {
     Entity chopper = registry->create_entity();
     chopper.Tag("player");
     chopper.Group("player");
-    chopper.add_component<TransformComponent>(glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.0);
+    chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(1.0, 1.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
     chopper.add_component<AnimationComponent>(2, 15, true);
-    chopper.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
+    chopper.add_component<BoxColliderComponent>(24, 24, glm::vec2(4.0, 4.0));
     chopper.add_component<KeyboardControlledComponent>(glm::vec2(0.0, -80.0),glm::vec2(80.0, 0.0), glm::vec2(0.0, 80.0), glm::vec2(-80.0, 0.0));
     chopper.add_component<ProjectileEmitterComponent>(glm::vec2(150.0, 150.0), 0, 10000, 10, true);
     chopper.add_component<CameraFollowComponent>();
-    chopper.add_component<HealthComponent>(100);
+    chopper.add_component<HealthComponent>(100, 100, false);
     chopper.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
 
@@ -268,9 +268,9 @@ void Game::LoadLevel(int level_number) {
     tank.add_component<TransformComponent>(glm::vec2(500.0, 600.0), glm::vec2(2.0, 2.0), 0.0);
     tank.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
-    tank.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
+    tank.add_component<BoxColliderComponent>(22, 22, glm::vec2(10.0, 10.0));
     tank.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 5000, 10000, 25, false);
-    tank.add_component<HealthComponent>(100);
+    tank.add_component<HealthComponent>(100, 100, false);
     tank.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
     // add truck entity
@@ -279,9 +279,9 @@ void Game::LoadLevel(int level_number) {
     truck.add_component<TransformComponent>(glm::vec2(100.0, 475.0), glm::vec2(2.0, 2.0), 0.0);
     truck.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     truck.add_component<SpriteComponent>("truck-image", 32, 32, GROUND_LAYER);
-    truck.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
+    truck.add_component<BoxColliderComponent>(22, 22, glm::vec2(10.0, 10.0));
     truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 1000, 5000, 10, false);
-    truck.add_component<HealthComponent>(100);
+    truck.add_component<HealthComponent>(50, 100, false);
     truck.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 }
 
@@ -328,9 +328,11 @@ void Game::Render() {
     registry->get_system<RenderSystem>().Render(renderer, asset_store, camera);
     registry->get_system<RenderTextSystem>().Render(renderer, asset_store, camera);
     // a system that renders the bounding boxes of the colliders for debugging
+
+    
     if (is_debug) {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);
-        registry->get_system<RenderGUISystem>().Render(registry);
+        registry->get_system<RenderGUISystem>().Render(registry, camera);
     }
 
     SDL_RenderPresent(renderer);

@@ -68,10 +68,10 @@ class DamageSystem: public System {
             if (health.is_god_mode){
                 return;
             }
-            health.health_percentage -= projectile_component.hit_percent_damage;
+            health.current_health -= projectile_component.hit_damage;
 
-            //Logger::Log("Player " + std::to_string(player.get_id()) + " health is now " + std::to_string(health.health_percentage) + ".");
-            if (health.health_percentage <= 0) {
+            //Logger::Log("Player " + std::to_string(player.get_id()) + " health is now " + std::to_string(health.current_health) + ".");
+            if (health.current_health <= 0) {
                 // kill the player when health is 0
                 player.Kill();
             }        
@@ -93,10 +93,10 @@ class DamageSystem: public System {
             if (enemy_health.is_god_mode){
                 return;
             }
-            Logger::Log("Enemy health is " + std::to_string(enemy_health.health_percentage) + ".");
-            enemy_health.health_percentage -= projectile_component.hit_percent_damage;
+            Logger::Log("Enemy health is " + std::to_string(enemy_health.current_health) + ".");
+            enemy_health.current_health -= projectile_component.hit_damage;
 
-            if (enemy_health.health_percentage <= 0) {
+            if (enemy_health.current_health <= 0) {
                 // kill the enemy when health is 0
                 enemy.Kill();
             }
