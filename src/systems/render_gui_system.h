@@ -12,7 +12,7 @@ class RenderGUISystem: public System {
     public:
         RenderGUISystem() = default;
 
-        void Render(std::unique_ptr<Registry>& registry, SDL_Rect& camera) {
+        void Render(std::unique_ptr<Registry>& registry, SDL_Rect& camera, int map_width, int map_height) {
             ImGui::NewFrame();
             static bool is_debug = false;
             static bool is_console_log = true;
@@ -198,7 +198,7 @@ class RenderGUISystem: public System {
                         Entity chopper = registry->create_entity();
                         chopper.Tag("player");
                         chopper.Group("player");
-                        chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(1.0, 1.0), 0.0);
+                        chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(2.0, 2.0), 0.0);
                         chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
                         chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
                         chopper.add_component<AnimationComponent>(2, 15, true);
@@ -213,6 +213,8 @@ class RenderGUISystem: public System {
                 } else {
                     if (ImGui::Begin("Player Settings")) {
                         auto& health = player.get_component<HealthComponent>();
+                        auto& transform = player.get_component<TransformComponent>();
+                        auto sprite = player.get_component<SpriteComponent>();
                         static int player_health = 100;
                         static int player_max_health = 100;
                         ImGui::Text("God Mode");
@@ -220,15 +222,32 @@ class RenderGUISystem: public System {
                         ImGui::Checkbox("God Mode", &is_god_mode);
                         health.is_god_mode = is_god_mode;
                         ImGui::Separator();
-                        ImGui::Text("Player Health");
-                        // show the player's health
                         ImGui::Text("Player Health: %d", health.current_health);
                         ImGui::Text("Player Max Health: %d", health.max_health);
+                        ImGui::Separator();
                         ImGui::SliderInt("Health", &player_health, 10, 1000);
                         ImGui::SliderInt("Max Health", &player_max_health, 10, 1000);
                         if (ImGui::Button("Set Health")) {
                             health.current_health = player_health;
                             health.max_health = player_max_health;
+                        }
+                        ImGui::Separator();
+                        float player_pos_x = transform.position.x;
+                        float player_pos_y = transform.position.y;
+                        ImGui::Text("Player Position: (%f, %f)", player_pos_x, player_pos_y);
+                        ImGui::Separator();
+                        // set player position
+                        static glm::vec2 player_position = glm::vec2(0.0, 0.0);
+                        ImGui::SliderFloat("X", &player_position.x, 0.0f, static_cast<float>(map_width - sprite.width * transform.scale.x));
+                        ImGui::SliderFloat("Y", &player_position.y, 0.0f, static_cast<float>(map_height - sprite.height * transform.scale.y));
+                        if (ImGui::Button("Set Player Position")) {
+                            transform.position = player_position;
+                            camera.x = transform.position.x - (camera.w / 2);
+                            camera.y = transform.position.y - (camera.h / 2);
+                            camera.x = camera.x < 0 ? 0 : camera.x;
+                            camera.y = camera.y < 0 ? 0 : camera.y;
+                            camera.x = camera.x > camera.w ? camera.w : camera.x;
+                            camera.y = camera.y > camera.h ? camera.h : camera.y;
                         }
                     }
                     ImGui::End();

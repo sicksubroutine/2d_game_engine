@@ -219,11 +219,13 @@ void Game::LoadAssets() {
 
     // Adding assets to the asset store
     asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png", false);
-    asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png", true);
+    asset_store->add_texture(renderer, "tank-right-image", "./assets/images/tank-panther-right.png", true);
+    asset_store->add_texture(renderer, "tank-left-image", "./assets/images/tank-panther-left.png", true);
     asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png", true);
     asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png", true);
     asset_store->add_texture(renderer, "radar-image", "./assets/images/radar.png", true);
     asset_store->add_texture(renderer, "bullet-image", "./assets/images/bullet.png", true);
+    asset_store->add_texture(renderer, "tree-image", "./assets/images/tree.png", false);
     
     // loading the tilemap
     LoadTileMap("tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
@@ -250,7 +252,7 @@ void Game::LoadLevel(int level_number) {
     Entity chopper = registry->create_entity();
     chopper.Tag("player");
     chopper.Group("player");
-    chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(1.0, 1.0), 0.0);
+    chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(2.0, 2.0), 0.0);
     chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
     chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
     chopper.add_component<AnimationComponent>(2, 15, true);
@@ -261,19 +263,26 @@ void Game::LoadLevel(int level_number) {
     chopper.add_component<HealthComponent>(100, 100, false);
     chopper.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
-
-    // add tank entity
     Entity tank = registry->create_entity();
     tank.Group("enemies");
-    tank.add_component<TransformComponent>(glm::vec2(500.0, 600.0), glm::vec2(2.0, 2.0), 0.0);
-    tank.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
-    tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
+    tank.add_component<TransformComponent>(glm::vec2(525.0, 600.0), glm::vec2(2.0, 2.0), 0.0);
+    tank.add_component<RigidBodyComponent>(glm::vec2(50.0, 0.0));
+    tank.add_component<SpriteComponent>("tank-right-image", 32, 32, GROUND_LAYER);
     tank.add_component<BoxColliderComponent>(22, 22, glm::vec2(10.0, 10.0));
-    tank.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 5000, 10000, 25, false);
+    tank.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -200.0), 750, 5000, 25, false);
     tank.add_component<HealthComponent>(100, 100, false);
     tank.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
-    // add truck entity
+    Entity blocking = registry->create_entity();
+    blocking.Group("obstacles");
+    blocking.add_component<TransformComponent>(glm::vec2(900.0, 500.0), glm::vec2(2.0, 2.0), 0.0);
+    blocking.add_component<BoxColliderComponent>(16, 200, glm::vec2(0.0, 0.0));
+
+    Entity blocking2 = registry->create_entity();
+    blocking2.Group("obstacles");
+    blocking2.add_component<TransformComponent>(glm::vec2(500.0, 500.0), glm::vec2(2.0, 2.0), 0.0);
+    blocking2.add_component<BoxColliderComponent>(16, 200, glm::vec2(0.0, 0.0));
+
     Entity truck = registry->create_entity();
     truck.Group("enemies");
     truck.add_component<TransformComponent>(glm::vec2(100.0, 475.0), glm::vec2(2.0, 2.0), 0.0);
@@ -308,10 +317,11 @@ void Game::Update() {
     registry->get_system<DamageSystem>().subscribe_to_events(event_bus);
     registry->get_system<KeyboardControlSystem>().subscribe_to_events(event_bus);
     registry->get_system<ProjectileEmitSystem>().subscribe_to_events(event_bus);
+    registry->get_system<MovementSystem>().subscribe_to_events(event_bus);
      // update the registry to process any entities that are waiting to be added/removed
     registry->Update();
 
-    registry->get_system<MovementSystem>().Update(delta_time);
+    registry->get_system<MovementSystem>().Update(delta_time, map_width, map_height);
     registry->get_system<AnimationSystem>().Update();
     registry->get_system<CollisionSystem>().Update(event_bus, is_debug);
     registry->get_system<ProjectileEmitSystem>().Update(registry);
@@ -332,7 +342,7 @@ void Game::Render() {
     
     if (is_debug) {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);
-        registry->get_system<RenderGUISystem>().Render(registry, camera);
+        registry->get_system<RenderGUISystem>().Render(registry, camera, map_width, map_height);
     }
 
     SDL_RenderPresent(renderer);

@@ -15,7 +15,7 @@ class DamageSystem: public System {
             require_component<BoxColliderComponent>();
         }
 
-        void subscribe_to_events(std::unique_ptr<EventBus>& event_bus) {
+        void subscribe_to_events(const std::unique_ptr<EventBus>& event_bus) {
             event_bus->subscribe_to_event<CollisionEvent>(this, &DamageSystem::on_collision);
         }
 
@@ -38,6 +38,7 @@ class DamageSystem: public System {
             } else if (b.BelongsToGroup("projectiles") && a.BelongsToGroup("enemies")) {
                 on_projectile_hits_enemy(b, a);
             }
+
 
         //    // check if player hit an enemy
         //     if (a.HasTag("player") && b.BelongsToGroup("enemies")) {

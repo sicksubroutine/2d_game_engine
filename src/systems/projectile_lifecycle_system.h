@@ -3,12 +3,14 @@
 
 #include "../ecs/ecs.h"
 #include "../components/projectile_component.h"
+#include "../components/transform_component.h"
 #include <SDL2/SDL.h>
 
 class ProjectileLifecycleSystem: public System {
     public:
         ProjectileLifecycleSystem() {
             require_component<ProjectileComponent>();
+            require_component<TransformComponent>();
         }
 
         void Update(SDL_Rect& camera) {

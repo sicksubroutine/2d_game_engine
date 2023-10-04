@@ -19,6 +19,7 @@ struct SpriteComponent {
     int width;
     int height;
     SpriteLayer layer;
+    SDL_RendererFlip flip;
     bool is_fixed;
     SDL_Rect src_rect;
     int hit_flash;
@@ -28,6 +29,7 @@ struct SpriteComponent {
         this->width = width;
         this->height = height;
         this->layer = layer;
+        this->flip = SDL_FLIP_NONE;
         this->is_fixed = layer == GUI_LAYER ? true : false;
         this->src_rect = {src_rect_x, src_rect_y, width, height};
         this->hit_flash = 0;

@@ -2,7 +2,7 @@
 CC = g++
 LANG = -std=c++17
 COMPILER_FLAGS = -Wall -Wfatal-errors
-INCLUDE_PATH = -I"./libs/"
+INCLUDE_PATH = -I"./libs/" -I"./libs/lua/"
 SRC_FILES = ./src/*.cpp \
  			./src/game/*.cpp \
 			./src/logger/*.cpp \

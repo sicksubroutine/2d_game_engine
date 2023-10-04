@@ -5,6 +5,7 @@
 #include "../components/camera_follow_component.h"
 #include "../components/transform_component.h"
 #include <SDL2/SDL.h>
+#include "../utils/utils.h"
 
 class CameraMovementSystem: public System {
     public:
@@ -17,19 +18,20 @@ class CameraMovementSystem: public System {
             for (auto entity: get_system_entities()) {
                 auto transform = entity.get_component<TransformComponent>();
 
-
                 if (transform.position.x + (camera.w / 2) < map_width) {
                     camera.x = transform.position.x - (camera.w / 2);
                 }
                 if (transform.position.y + (camera.h / 2) < map_height) {
                     camera.y = transform.position.y - (camera.h / 2);
                 }
+
+                camera.x = Utils::Clamp(camera.x, 0, map_width - camera.w);
+                camera.y = Utils::Clamp(camera.y, 0, map_height - camera.h);
+
                 camera.x = camera.x < 0 ? 0 : camera.x;
                 camera.y = camera.y < 0 ? 0 : camera.y;
                 camera.x = camera.x > camera.w ? camera.w : camera.x;
                 camera.y = camera.y > camera.h ? camera.h : camera.y;
-
-                //Logger::Log("Camera x: " + std::to_string(camera.x) + " Camera y: " + std::to_string(camera.y));
                 
             }
         }
