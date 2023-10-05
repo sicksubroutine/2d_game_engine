@@ -14,10 +14,10 @@ class RenderGUISystem: public System {
 
         void Render(std::unique_ptr<Registry>& registry, SDL_Rect& camera, int map_width, int map_height) {
             ImGui::NewFrame();
-            static bool is_debug = false;
+            static bool is_debug = true;
             static bool is_console_log = true;
             static bool enemy_spawn_tool = false;
-            static bool player_settings = false;
+            static bool player_settings = true;
 
             if (ImGui::BeginMainMenuBar()) {
                 
@@ -42,6 +42,10 @@ class RenderGUISystem: public System {
             if (is_debug) {
                 if (ImGui::Begin("Debug Panel")) {
                     ImGui::Text("FPS: %d", Utils::GetFPS());
+                    ImGui::Separator();
+                    // get mouse position from imgui
+                    ImGuiIO& io = ImGui::GetIO();
+                    ImGui::Text("Mouse Position: (%d, %d)", static_cast<int>(io.MousePos.x), static_cast<int>(io.MousePos.y));
                     ImGui::Separator();
                     ImGui::Text("Camera Position: (%d, %d)", camera.x, camera.y);
                 }
@@ -186,10 +190,10 @@ class RenderGUISystem: public System {
                 }
                 ImGui::End();
             }
-
+            
             if (player_settings) {
-                auto player = registry->get_entity_by_tag("player");
-                if (!player.BelongsToGroup("player")) {
+                auto player_group = registry->get_entities_by_group("player");
+                if (player_group.empty()) {
                     ImGui::Begin("Player Settings");
                     ImGui::Text("Player died probably!");
                     ImGui::Separator();
@@ -209,51 +213,53 @@ class RenderGUISystem: public System {
                         chopper.add_component<HealthComponent>(100, 100, false);
                         chopper.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
                     }
-                    ImGui::End();    
-                } else {
-                    if (ImGui::Begin("Player Settings")) {
-                        auto& health = player.get_component<HealthComponent>();
-                        auto& transform = player.get_component<TransformComponent>();
-                        auto sprite = player.get_component<SpriteComponent>();
-                        static int player_health = 100;
-                        static int player_max_health = 100;
-                        ImGui::Text("God Mode");
-                        static bool is_god_mode = false;
-                        ImGui::Checkbox("God Mode", &is_god_mode);
-                        health.is_god_mode = is_god_mode;
-                        ImGui::Separator();
-                        ImGui::Text("Player Health: %d", health.current_health);
-                        ImGui::Text("Player Max Health: %d", health.max_health);
-                        ImGui::Separator();
-                        ImGui::SliderInt("Health", &player_health, 10, 1000);
-                        ImGui::SliderInt("Max Health", &player_max_health, 10, 1000);
-                        if (ImGui::Button("Set Health")) {
-                            health.current_health = player_health;
-                            health.max_health = player_max_health;
-                        }
-                        ImGui::Separator();
-                        float player_pos_x = transform.position.x;
-                        float player_pos_y = transform.position.y;
-                        ImGui::Text("Player Position: (%f, %f)", player_pos_x, player_pos_y);
-                        ImGui::Separator();
-                        // set player position
-                        static glm::vec2 player_position = glm::vec2(0.0, 0.0);
-                        ImGui::SliderFloat("X", &player_position.x, 0.0f, static_cast<float>(map_width - sprite.width * transform.scale.x));
-                        ImGui::SliderFloat("Y", &player_position.y, 0.0f, static_cast<float>(map_height - sprite.height * transform.scale.y));
-                        if (ImGui::Button("Set Player Position")) {
-                            transform.position = player_position;
-                            camera.x = transform.position.x - (camera.w / 2);
-                            camera.y = transform.position.y - (camera.h / 2);
-                            camera.x = camera.x < 0 ? 0 : camera.x;
-                            camera.y = camera.y < 0 ? 0 : camera.y;
-                            camera.x = camera.x > camera.w ? camera.w : camera.x;
-                            camera.y = camera.y > camera.h ? camera.h : camera.y;
-                        }
-                    }
                     ImGui::End();
+                } 
+                for (auto entity: player_group) {
+                    if (entity.HasTag("player")) {
+                        if (ImGui::Begin("Player Settings")) {
+                            auto& health = entity.get_component<HealthComponent>();
+                            auto& transform = entity.get_component<TransformComponent>();
+                            auto sprite = entity.get_component<SpriteComponent>();
+                            static int player_health = 100;
+                            static int player_max_health = 100;
+                            ImGui::Text("God Mode");
+                            static bool is_god_mode = false;
+                            ImGui::Checkbox("God Mode", &is_god_mode);
+                            health.is_god_mode = is_god_mode;
+                            ImGui::Separator();
+                            ImGui::Text("Player Health: %d", health.current_health);
+                            ImGui::Text("Player Max Health: %d", health.max_health);
+                            ImGui::Separator();
+                            ImGui::SliderInt("Health", &player_health, 10, 1000);
+                            ImGui::SliderInt("Max Health", &player_max_health, 10, 1000);
+                            if (ImGui::Button("Set Health")) {
+                                health.current_health = player_health;
+                                health.max_health = player_max_health;
+                            }
+                            ImGui::Separator();
+                            float player_pos_x = transform.position.x;
+                            float player_pos_y = transform.position.y;
+                            ImGui::Text("Player Position: (%f, %f)", player_pos_x, player_pos_y);
+                            ImGui::Separator();
+                            // set player position
+                            static glm::vec2 player_position = glm::vec2(0.0, 0.0);
+                            ImGui::SliderFloat("X", &player_position.x, 0.0f, static_cast<float>(map_width - sprite.width * transform.scale.x));
+                            ImGui::SliderFloat("Y", &player_position.y, 0.0f, static_cast<float>(map_height - sprite.height * transform.scale.y));
+                            if (ImGui::Button("Set Player Position")) {
+                                transform.position = player_position;
+                                camera.x = transform.position.x - (camera.w / 2);
+                                camera.y = transform.position.y - (camera.h / 2);
+                                camera.x = camera.x < 0 ? 0 : camera.x;
+                                camera.y = camera.y < 0 ? 0 : camera.y;
+                                camera.x = camera.x > camera.w ? camera.w : camera.x;
+                                camera.y = camera.y > camera.h ? camera.h : camera.y;
+                            }
+                        }
+                        ImGui::End();
+                    }
                 }
             }
-            
 
             ImGui::Render();
             ImGuiSDL::Render(ImGui::GetDrawData());

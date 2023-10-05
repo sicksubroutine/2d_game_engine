@@ -2,6 +2,7 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
+#include <sol/sol.hpp>
 #include "../ecs/ecs.h"
 #include "../asset_store/asset_store.h"
 #include "../components/sprite_component.h"
@@ -22,6 +23,9 @@ class Game {
         SDL_Window* window;
         SDL_Renderer* renderer;
         SDL_Rect camera;
+
+        sol::state lua;
+        
         std::unique_ptr<Registry> registry;
         std::unique_ptr<AssetStore> asset_store;
         std::unique_ptr<EventBus> event_bus;
@@ -32,10 +36,7 @@ class Game {
 
         void Initialize();
         void Run();
-        void LoadLevel(int level_number);
         void LoadSystems();
-        void LoadAssets();
-        void LoadTileMap(std::string asset_id, std::string file_path, int tile_size, int tile_scale);
         void Setup();
         void ProcessInput();
         void Update();

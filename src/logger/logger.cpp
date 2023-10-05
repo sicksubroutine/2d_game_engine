@@ -32,7 +32,7 @@ void Logger::Log(const std::string& message) {
     LogEntry log_entry;
     log_entry.type = LOG_INFO;
     log_entry.message = "LOG: [" + Current_DateTime_to_String() + "] - " + message;
-    //std::cout << "\033[1;32m" << log_entry.message << "\033[0m" << std::endl;
+    std::cout << "\033[1;32m" << log_entry.message << "\033[0m" << std::endl;
     write_to_file(log_entry.message);
     logs.push_back(log_entry);
 }
@@ -41,7 +41,7 @@ void Logger::Warn(const std::string& message) {
     LogEntry log_entry;
     log_entry.type = LOG_WARNING;
     log_entry.message = "WARN: [" + Current_DateTime_to_String() + "] - " + message;
-    //std::cout << "\033[1;33m" << log_entry.message << "\033[0m" << std::endl;
+    std::cout << "\033[1;33m" << log_entry.message << "\033[0m" << std::endl;
     write_to_file(log_entry.message);
     logs.push_back(log_entry);
 }
@@ -50,7 +50,7 @@ void Logger::Err(const std::string& message) {
     LogEntry log_entry;
     log_entry.type = LOG_ERROR;
     log_entry.message = "ERR: [" + Current_DateTime_to_String() + "] - " + message;
-    //std::cout << "\033[1;31m" << log_entry.message << "\033[0m" << std::endl;
+    std::cout << "\033[1;31m" << log_entry.message << "\033[0m" << std::endl;
     write_to_file(log_entry.message);
     logs.push_back(log_entry);
 }

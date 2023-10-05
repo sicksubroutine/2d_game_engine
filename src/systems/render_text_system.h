@@ -35,7 +35,7 @@ class RenderTextSystem: public System {
                     transform.position.y - (transform.scale.y * label_height) > camera.y + camera.h
                 );
 
-                if (is_text_outside_camera_view) {
+                if (is_text_outside_camera_view && !text_label.is_fixed) {
                     continue;
                 }
 
