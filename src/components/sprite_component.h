@@ -23,8 +23,11 @@ struct SpriteComponent {
     bool is_fixed;
     SDL_Rect src_rect;
     int hit_flash;
+    bool is_hidden;
+    bool is_revealed;
+    bool is_visible;
 
-    SpriteComponent(std::string asset_id ="", int width = 0, int height = 0, SpriteLayer layer = BACKGROUND_LAYER, int src_rect_x = 0, int src_rect_y = 0) {
+    SpriteComponent(std::string asset_id ="", int width = 0, int height = 0, SpriteLayer layer = BACKGROUND_LAYER, int src_rect_x = 0, int src_rect_y = 0, bool is_hidden = true) {
         this->asset_id = asset_id;
         this->width = width;
         this->height = height;
@@ -33,6 +36,10 @@ struct SpriteComponent {
         this->is_fixed = layer == GUI_LAYER ? true : false;
         this->src_rect = {src_rect_x, src_rect_y, width, height};
         this->hit_flash = 0;
+        this->is_hidden = is_hidden;
+        this->is_revealed = false;
+        this->is_visible = false;
+
     }
 };
 

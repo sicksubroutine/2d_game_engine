@@ -11,6 +11,8 @@
 #include "../systems/render_text_system.h"
 #include "../systems/health_bar_system.h"
 #include "../systems/render_gui_system.h"
+#include "../systems/script_system.h"
+#include "../systems/fog_of_war_system.h"
 
 // Others
 #include "../utils/utils.h"
@@ -26,6 +28,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_sdl.h>
 #include <imgui/imgui_impl_sdl.h>
+#include <sol/sol.hpp>
 
 int Game::window_width;
 int Game::window_height;
@@ -37,6 +40,8 @@ Game::Game() {
     registry = std::make_unique<Registry>();
     asset_store = std::make_unique<AssetStore>();
     event_bus = std::make_unique<EventBus>();
+    lua.open_libraries(sol::lib::base, sol::lib::os, sol::lib::math);
+    
     Logger::Log("Game constructor called.");
 }
 
@@ -56,11 +61,29 @@ void Game::Initialize(void) {
         return;
     }
 
+    bool full_screen = false;
+    std::string config_file = "./assets/scripts/constants.lua";
+    sol::load_result script = lua.load_file(config_file);
+    if (!script.valid()) {
+        sol::error err = script;
+        std::string error_msg = err.what();
+        Logger::Err("Error loading config file: " + error_msg);
+        return;
+    } else {
+        lua.script_file(config_file);
+        sol::table config = lua["config"];
+        window_width = static_cast<int>(config["resolution"]["window_width"]);
+        window_height = static_cast<int>(config["resolution"]["window_height"]);
+        full_screen = config["full_screen"];
+        is_debug = config["debug"];
+        Logger::debug_to_console = config["debug_to_console"];
+    }
+
     // full screen
     SDL_DisplayMode displayMode;
     SDL_GetCurrentDisplayMode(0, &displayMode);
-    window_width = FULL_SCREEN ? displayMode.w : WINDOW_WIDTH;
-    window_height = FULL_SCREEN ? displayMode.h : WINDOW_HEIGHT;
+    window_width = full_screen ? displayMode.w : window_width;
+    window_height = full_screen ? displayMode.h : window_height;
 
     Logger::Log("Window width: " + std::to_string(window_width));
     Logger::Log("Window height: " + std::to_string(window_height));
@@ -92,7 +115,7 @@ void Game::Initialize(void) {
     ImGui::CreateContext();
     ImGuiSDL::Initialize(renderer, window_width, window_height);
 
-    if (FULL_SCREEN){
+    if (full_screen){
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
@@ -148,12 +171,13 @@ void Game::LoadSystems() {
     registry->add_system<ProjectileLifecycleSystem>();
     registry->add_system<HealthBarSystem>();
     registry->add_system<RenderGUISystem>();
+    registry->add_system<ScriptSystem>();
+    registry->add_system<FogOfWarSystem>();
 }
 
 void Game::Setup() {
 
     LoadSystems();
-    lua.open_libraries(sol::lib::base, sol::lib::os, sol::lib::math);
     LevelLoader loader;
     loader.load_level(lua, registry, asset_store, renderer, 1);
 }
@@ -182,6 +206,7 @@ void Game::Update() {
      // update the registry to process any entities that are waiting to be added/removed
     registry->Update();
 
+    registry->get_system<FogOfWarSystem>().Update(registry);
     registry->get_system<MovementSystem>().Update(delta_time, map_width, map_height);
     registry->get_system<AnimationSystem>().Update();
     registry->get_system<CollisionSystem>().Update(event_bus, is_debug);
@@ -189,6 +214,7 @@ void Game::Update() {
     registry->get_system<CameraMovementSystem>().Update(camera, map_width, map_height);
     registry->get_system<ProjectileLifecycleSystem>().Update(camera);
     registry->get_system<HealthBarSystem>().Update();
+    registry->get_system<ScriptSystem>().Update();
 }
 
 void Game::Render() {

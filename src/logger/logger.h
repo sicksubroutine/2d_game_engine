@@ -17,6 +17,7 @@ struct LogEntry {
 
 class Logger {
     public:
+        static bool debug_to_console;
         static std::vector<LogEntry> logs;
         static void Log(const std::string& message);
         static void Warn(const std::string& message);

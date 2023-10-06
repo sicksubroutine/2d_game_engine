@@ -23,6 +23,7 @@
 #include "../components/projectile_emitter_component.h"
 #include "../components/health_component.h"
 #include "../components/text_label_component.h"
+#include "../components/script_component.h"
 
 
 LevelLoader::LevelLoader() {
@@ -85,7 +86,6 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
     }
     
     lua.script_file(level_file);
-
     sol::table level = lua["Level"];
     Logger::Log("Loaded level " + std::to_string(level_number) + "!");
     
@@ -115,9 +115,12 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
     std::string map_file = tilemap["map_file"];
     std::string texture_asset_id = tilemap["texture_asset_id"];
     int tile_size = tilemap["tile_size"];
-    double scale = tilemap["scale"];
+    float scale = tilemap["scale"];
     LoadTileMap(registry, texture_asset_id, map_file, tile_size, scale);
     Logger::Log("Loaded tilemap for level " + std::to_string(level_number)+ "!");
+
+    lua["map_width"] = Game::map_width;
+    lua["map_height"] = Game::map_height;
 
     // Load entities
     sol::table entities = level["entities"];
@@ -133,17 +136,138 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
         // Tag
         sol::optional<std::string> tag = entity.value()["tag"];
         if (tag != sol::nullopt) {
+            Logger::Log("Adding tag " + tag.value() + " to entity " + std::to_string(new_entity.get_id()));
             new_entity.Tag(tag.value());
         }
 
         // Group
         sol::optional<std::string> group = entity.value()["group"];
         if (group != sol::nullopt) {
+            Logger::Log("Adding group " + group.value() + " to entity " + std::to_string(new_entity.get_id()));
             new_entity.Group(group.value());
         }
+
+        sol::optional<sol::table> components = entity.value()["components"];
+        if (components != sol::nullopt) {
+            // transform
+            sol::optional<sol::table> transform = components.value()["transform"];
+            if (transform != sol::nullopt) {
+                
+                new_entity.add_component<TransformComponent>(
+                    glm::vec2(transform.value()["position"]["x"], transform.value()["position"]["y"]),
+                    glm::vec2(transform.value()["scale"]["x"].get_or(1.0), transform.value()["scale"]["y"].get_or(1.0)),
+                    transform.value()["rotation"].get_or(0.0)
+                );
+            }
+            // rigidbody
+            sol::optional<sol::table> rigid_body = components.value()["rigidbody"];
+            if (rigid_body != sol::nullopt) {
+                
+                new_entity.add_component<RigidBodyComponent>(
+                    glm::vec2(rigid_body.value()["velocity"]["x"].get_or(0.0), rigid_body.value()["velocity"]["y"].get_or(0.0))
+                );
+            }
+            // sprite
+            sol::optional<sol::table> sprite = components.value()["sprite"];
+            if (sprite != sol::nullopt) {
+
+                SpriteLayer layer = static_cast<SpriteLayer>(sprite.value()["layer"].get_or(0));
+                
+                new_entity.add_component<SpriteComponent>(
+                    sprite.value()["texture_asset_id"],
+                    sprite.value()["width"],
+                    sprite.value()["height"],
+                    layer,
+                    sprite.value()["src_rect"]["x"].get_or(0),
+                    sprite.value()["src_rect"]["y"].get_or(0),
+                    sprite.value()["is_hidden"].get_or(true)
+                );
+            }
+            // animation
+            sol::optional<sol::table> animation = components.value()["animation"];
+            if (animation != sol::nullopt) {
+                
+                new_entity.add_component<AnimationComponent>(
+                    static_cast<int>(animation.value()["num_frames"]),
+                    static_cast<int>(animation.value()["speed_rate"]),
+                    animation.value()["is_looping"]
+                );
+            }
+            // box_collider
+            sol::optional<sol::table> box_collider = components.value()["boxcollider"];
+            if (box_collider != sol::nullopt) {
+                // show all values being added
+                Logger::Log("Adding box collider component to entity " + std::to_string(new_entity.get_id()));
+                new_entity.add_component<BoxColliderComponent>(
+                    static_cast<int>(box_collider.value()["width"]),
+                    static_cast<int>(box_collider.value()["height"]),
+                    glm::vec2(box_collider.value()["offset"]["x"].get_or(0.0), box_collider.value()["offset"]["y"].get_or(0.0))
+                );
+            }
+
+            // camera_follow
+            sol::optional<sol::table> camera_follow = components.value()["camera_follow"];
+            if (camera_follow != sol::nullopt) {
+                 Logger::Log("Adding camera follow component to entity " + std::to_string(new_entity.get_id()));
+                new_entity.add_component<CameraFollowComponent>();
+            }
+            // health
+            sol::optional<sol::table> health = components.value()["health"];
+            if (health != sol::nullopt) {
+                
+                new_entity.add_component<HealthComponent>(
+                    static_cast<int>(health.value()["current_health"]),
+                    static_cast<int>(health.value()["max_health"]),
+                    health.value()["is_god_mode"]
+                );
+
+                // add a health bar
+                new_entity.add_component<TextLabelComponent>(
+                    glm::vec2(0.0),
+                    "100",
+                    "pico8-font-7",
+                    col.green,
+                    false,
+                    new_entity.get_id()
+                );
+            }
+            // projectile_emitter
+            sol::optional<sol::table> projectile_emitter = components.value()["projectile_emitter"];
+            if (projectile_emitter != sol::nullopt) {
+                
+                new_entity.add_component<ProjectileEmitterComponent>(
+                    glm::vec2(projectile_emitter.value()["projectile_velocity"]["x"], projectile_emitter.value()["projectile_velocity"]["y"]),
+                    static_cast<int>(projectile_emitter.value()["repeat_frequency"].get_or(10) * 1000),
+                    static_cast<int>(projectile_emitter.value()["projectile_duration"].get_or(10) * 1000), 
+                    static_cast<int>(projectile_emitter.value()["hit_damage"].get_or(10)),
+                    projectile_emitter.value()["friendly"]
+                );
+            }
+            // keyboard_controller
+            sol::optional<sol::table> keyboard_controller = components.value()["keyboard_controller"];
+            if (keyboard_controller != sol::nullopt) {
+            
+                new_entity.add_component<KeyboardControlledComponent>(
+                    glm::vec2(keyboard_controller.value()["up_velocity"]["x"], keyboard_controller.value()["up_velocity"]["y"]),
+                    glm::vec2(keyboard_controller.value()["right_velocity"]["x"], keyboard_controller.value()["right_velocity"]["y"]),
+                    glm::vec2(keyboard_controller.value()["down_velocity"]["x"], keyboard_controller.value()["down_velocity"]["y"]),
+                    glm::vec2(keyboard_controller.value()["left_velocity"]["x"], keyboard_controller.value()["left_velocity"]["y"])
+                );
+            }
+
+            // script
+            sol::optional<sol::table> script_component = components.value()["on_update_script"];
+            if (script_component != sol::nullopt) {
+                sol::function func = script_component.value()[0];
+                new_entity.add_component<ScriptComponent>(func);
+            }
+            
+        }
+        i++;  
+            
     }
 
-    // // Add fonts to the asset store
+    // Add fonts to the asset store
     // asset_store->add_font("charriot-font", "./assets/fonts/charriot.ttf", 16);
     // asset_store->add_font("pico8-font-10", "./assets/fonts/pico8.ttf", 10);
     // asset_store->add_font("pico8-font-7", "./assets/fonts/pico8.ttf", 7);

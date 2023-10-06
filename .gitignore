@@ -45,8 +45,11 @@
 *.DS_Store
 **/.DS_Store
 
-/assets
-/libs
+**/tilemaps
+**/sounds
+**/fonts
+**/images
+**/libs
 /.vscode
 imgui.ini
 /tools

@@ -6,6 +6,7 @@
 #include "../ecs/ecs.h"
 #include "../components/text_label_component.h"
 #include "../components/transform_component.h"
+#include "../components/sprite_component.h"
 
 class RenderTextSystem: public System {
     public:
@@ -17,6 +18,13 @@ class RenderTextSystem: public System {
             for (auto entity: get_system_entities()) {
                 const auto text_label = entity.get_component<TextLabelComponent>();
                 const auto transform = entity.get_component<TransformComponent>();
+
+                if (text_label.belongs_to_entity_id != -1) {
+                    const auto sprite = entity.get_component<SpriteComponent>();
+                    if (sprite.is_hidden) {
+                        continue;
+                    }
+                }
 
                 TTF_Font* font_id = asset_store->get_font(text_label.asset_id);
 

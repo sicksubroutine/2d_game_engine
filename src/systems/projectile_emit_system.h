@@ -85,7 +85,7 @@ class ProjectileEmitSystem: public System {
             projectile.Group("projectiles");
             projectile.add_component<TransformComponent>(position, glm::vec2(1.0, 1.0), 0.0);
             projectile.add_component<RigidBodyComponent>(velocity);
-            projectile.add_component<SpriteComponent>("bullet-image", 4,4, BULLET_LAYER);
+            projectile.add_component<SpriteComponent>("bullet-texture", 4,4, BULLET_LAYER);
             projectile.add_component<BoxColliderComponent>(4, 4, glm::vec2(0), false, belongs_to_entity_id);
             projectile.add_component<ProjectileComponent>(is_friendly, hit_damage, duration);
         }

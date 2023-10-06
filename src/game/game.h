@@ -8,11 +8,8 @@
 #include "../components/sprite_component.h"
 #include "../event_bus/event_bus.h"
 
-const int WINDOW_WIDTH = 1280; 
-const int WINDOW_HEIGHT = 720;
 const int FPS = 60;
 const int MS_PER_FRAME = 1000 / FPS;
-const bool FULL_SCREEN = false;
 
 class Game {
     private:
@@ -20,12 +17,12 @@ class Game {
         int ms_prev_frame = 0;
         float delta_time = 0;
         bool is_debug = false;
+        
         SDL_Window* window;
         SDL_Renderer* renderer;
         SDL_Rect camera;
 
         sol::state lua;
-        
         std::unique_ptr<Registry> registry;
         std::unique_ptr<AssetStore> asset_store;
         std::unique_ptr<EventBus> event_bus;

@@ -48,6 +48,10 @@ class RenderGUISystem: public System {
                     ImGui::Text("Mouse Position: (%d, %d)", static_cast<int>(io.MousePos.x), static_cast<int>(io.MousePos.y));
                     ImGui::Separator();
                     ImGui::Text("Camera Position: (%d, %d)", camera.x, camera.y);
+                    ImGui::Separator();
+                    // map width and height
+                    ImGui::Text("Map Width: %d", map_width);
+                    ImGui::Text("Map Height: %d", map_height);
                 }
                 ImGui::End();
             }
@@ -204,7 +208,7 @@ class RenderGUISystem: public System {
                         chopper.Group("player");
                         chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(2.0, 2.0), 0.0);
                         chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
-                        chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
+                        chopper.add_component<SpriteComponent>("chopper-texture", 32, 32, PLAYER_LAYER);
                         chopper.add_component<AnimationComponent>(2, 15, true);
                         chopper.add_component<BoxColliderComponent>(32, 32, glm::vec2(0.0));
                         chopper.add_component<KeyboardControlledComponent>(glm::vec2(0.0, -80.0),glm::vec2(80.0, 0.0), glm::vec2(0.0, 80.0), glm::vec2(-80.0, 0.0));
@@ -290,13 +294,13 @@ class RenderGUISystem: public System {
             int projectile_damage = 10
         ) {
             if (enemy_str == "Tank") {
-                enemy_str = "tank-image";
+                enemy_str = "sam-tank-left-texture";
             } else if (enemy_str == "Truck") {
-                enemy_str = "truck-image";
+                enemy_str = "truck-ford-left-texture";
             } else if (enemy_str == "Helicopter") {
-                enemy_str = "chopper-image";
+                enemy_str = "chopper-texture";
             } else {
-                enemy_str = "tank-image";
+                enemy_str = "sam-tank-left-texture";
             }
             Entity entity = registry->create_entity();
             entity.Group("enemies");

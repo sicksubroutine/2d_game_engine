@@ -45,6 +45,11 @@ class RenderSystem: public System {
                     continue;
                 }
 
+                // fog of war system will hide entities that are not within a certain radius of the player
+                if (renderable_entity.sprite_component.is_hidden) {
+                    continue;
+                }
+
                 layer_map[renderable_entity.sprite_component.layer].emplace_back(renderable_entity);
             }
 
@@ -69,6 +74,13 @@ class RenderSystem: public System {
                         static_cast<int>(sprite.width * transform.scale.x),
                         static_cast<int>(sprite.height * transform.scale.y)
                     };
+
+                    // fog of war system, that will fade out entities that are not within a certain radius of the player
+                    // but have already been revealed by the player
+                    if (sprite.is_revealed && !sprite.is_hidden && !sprite.is_visible) {
+                        SDL_SetTextureAlphaMod(baseTexture, 100);
+                    }
+                    
                     SDL_RenderCopyEx(renderer, baseTexture, &src_rect, &dst_rect, transform.rotation, NULL, sprite.flip);
 
                     if (whiteTexture != nullptr) {
