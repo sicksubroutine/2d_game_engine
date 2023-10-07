@@ -6,6 +6,7 @@
 #include "../events/collision_event.h"
 #include "../components/box_collider_component.h"
 #include "../components/transform_component.h"
+#include "../game/game.h"
 
 class CollisionSystem: public System {
     public:
@@ -66,7 +67,7 @@ class CollisionSystem: public System {
                     );
 
                     if (collision_happened) {
-                        if (is_debug) {
+                        if (Game::verbose_logging) {
                             Logger::Log("Entity " + std::to_string(a.get_id()) + " collided with entity " + std::to_string(b.get_id()) + ".");
                         }
                         event_bus->emit_event<CollisionEvent>(a, b);

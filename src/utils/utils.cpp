@@ -3,7 +3,6 @@
 
 struct Colors col;
 
-
 float Utils::Distance(int x1, int y1, int x2, int y2) {
     int dx = x1 - x2;
     int dy = y1 - y2;
@@ -59,4 +58,10 @@ int Utils::GetFPS() {
         frame_count = 0;
     }
     return fps;
+}
+
+bool Utils::IsWithinCircle(float x, float y, float x1, float y2, int radius) {
+    float dx = x - x1;
+    float dy = y - y2;
+    return (dx * dx + dy * dy) <= (radius * radius);
 }

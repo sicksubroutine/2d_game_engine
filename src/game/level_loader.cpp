@@ -24,6 +24,7 @@
 #include "../components/health_component.h"
 #include "../components/text_label_component.h"
 #include "../components/script_component.h"
+#include "../components/audio_component.h"
 
 
 LevelLoader::LevelLoader() {
@@ -106,6 +107,8 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
             asset_store->add_texture(renderer, id, file, asset.value()["white_tex"]);
         } else if (asset_type == "font") {
             asset_store->add_font(id, file, asset.value()["font_size"]);
+        } else if (asset_type == "audio") {
+            asset_store->add_audio(id, file);
         }
         i++;
     }
@@ -117,7 +120,9 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
     int tile_size = tilemap["tile_size"];
     float scale = tilemap["scale"];
     LoadTileMap(registry, texture_asset_id, map_file, tile_size, scale);
-    Logger::Log("Loaded tilemap for level " + std::to_string(level_number)+ "!");
+    if (Game::verbose_logging) {
+        Logger::Log("Loaded tilemap for level " + std::to_string(level_number)+ "!");
+    }
 
     lua["map_width"] = Game::map_width;
     lua["map_height"] = Game::map_height;
@@ -136,14 +141,18 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
         // Tag
         sol::optional<std::string> tag = entity.value()["tag"];
         if (tag != sol::nullopt) {
-            Logger::Log("Adding tag " + tag.value() + " to entity " + std::to_string(new_entity.get_id()));
+            if (Game::verbose_logging) {
+                Logger::Log("Adding tag " + tag.value() + " to entity " + std::to_string(new_entity.get_id()));
+            }
             new_entity.Tag(tag.value());
         }
 
         // Group
         sol::optional<std::string> group = entity.value()["group"];
         if (group != sol::nullopt) {
-            Logger::Log("Adding group " + group.value() + " to entity " + std::to_string(new_entity.get_id()));
+            if (Game::verbose_logging) {
+                Logger::Log("Adding group " + group.value() + " to entity " + std::to_string(new_entity.get_id()));
+            }
             new_entity.Group(group.value());
         }
 
@@ -196,8 +205,9 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
             // box_collider
             sol::optional<sol::table> box_collider = components.value()["boxcollider"];
             if (box_collider != sol::nullopt) {
-                // show all values being added
-                Logger::Log("Adding box collider component to entity " + std::to_string(new_entity.get_id()));
+                if (Game::verbose_logging) {
+                    Logger::Log("Adding box collider component to entity " + std::to_string(new_entity.get_id()));
+                }
                 new_entity.add_component<BoxColliderComponent>(
                     static_cast<int>(box_collider.value()["width"]),
                     static_cast<int>(box_collider.value()["height"]),
@@ -208,7 +218,9 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
             // camera_follow
             sol::optional<sol::table> camera_follow = components.value()["camera_follow"];
             if (camera_follow != sol::nullopt) {
-                 Logger::Log("Adding camera follow component to entity " + std::to_string(new_entity.get_id()));
+                if (Game::verbose_logging) {
+                    Logger::Log("Adding camera follow component to entity " + std::to_string(new_entity.get_id()));
+                }
                 new_entity.add_component<CameraFollowComponent>();
             }
             // health
@@ -261,66 +273,21 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
                 sol::function func = script_component.value()[0];
                 new_entity.add_component<ScriptComponent>(func);
             }
+
+            // audio component
+            sol::optional<sol::table> audio_component = components.value()["audio_source"];
+            if (audio_component != sol::nullopt) {
+                new_entity.add_component<AudioComponent>(
+                    audio_component.value()["audio_asset_id"],
+                    audio_component.value()["is_looping"],
+                    audio_component.value()["volume"]
+                );
+            }
             
         }
         i++;  
             
     }
-
-    // Add fonts to the asset store
-    // asset_store->add_font("charriot-font", "./assets/fonts/charriot.ttf", 16);
-    // asset_store->add_font("pico8-font-10", "./assets/fonts/pico8.ttf", 10);
-    // asset_store->add_font("pico8-font-7", "./assets/fonts/pico8.ttf", 7);
-
-    // // Adding assets to the asset store
-    // asset_store->add_texture(renderer, "tilemap", "./assets/tilemaps/jungle.png", false);
-    // asset_store->add_texture(renderer, "tank-image", "./assets/images/tank-panther-right.png", true);
-    // asset_store->add_texture(renderer, "tank-left-image", "./assets/images/tank-panther-left.png", true);
-    // asset_store->add_texture(renderer, "truck-image", "./assets/images/truck-ford-right.png", true);
-    // asset_store->add_texture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png", true);
-    // asset_store->add_texture(renderer, "radar-image", "./assets/images/radar.png", true);
-    // asset_store->add_texture(renderer, "bullet-image", "./assets/images/bullet.png", true);
-    // asset_store->add_texture(renderer, "tree-image", "./assets/images/tree.png", false);
-    
-    // // loading the tilemap
-    // LoadTileMap(registry, "tilemap", "./assets/tilemaps/jungle.map", 32, 2.0);
-    // Logger::Log("Loaded tilemap for level " + std::to_string(level_number)+ "!");
-    // Entity label = registry->create_entity();
-    // label.Group("GUI");
-    // label.add_component<TextLabelComponent>(glm::vec2(Game::window_width/2-40, 10), "CHOPPER 1.0", "pico8-font-10", col.green, true);
-
-    // // create the radar entity
-    // Entity radar = registry->create_entity();
-    // radar.Group("GUI");
-    // radar.add_component<TransformComponent>(glm::vec2(Game::window_width-74, 10.0), glm::vec2(1.0, 1.0), 0.0);
-    // radar.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
-    // radar.add_component<SpriteComponent>("radar-image", 64, 64, GUI_LAYER);
-    // radar.add_component<AnimationComponent>(8, 5, true);
-
-    // //create some entities
-    // Entity chopper = registry->create_entity();
-    // chopper.Tag("player");
-    // chopper.Group("player");
-    // chopper.add_component<TransformComponent>(glm::vec2(0.0, 100.0), glm::vec2(2.0, 2.0), 0.0);
-    // chopper.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
-    // chopper.add_component<SpriteComponent>("chopper-image", 32, 32, PLAYER_LAYER);
-    // chopper.add_component<AnimationComponent>(2, 15, true);
-    // chopper.add_component<BoxColliderComponent>(24, 24, glm::vec2(4.0, 4.0));
-    // chopper.add_component<KeyboardControlledComponent>(glm::vec2(0.0, -80.0),glm::vec2(80.0, 0.0), glm::vec2(0.0, 80.0), glm::vec2(-80.0, 0.0));
-    // chopper.add_component<ProjectileEmitterComponent>(glm::vec2(150.0, 150.0), 0, 10000, 10, true);
-    // chopper.add_component<CameraFollowComponent>();
-    // chopper.add_component<HealthComponent>(100, 100, false);
-    // chopper.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
-
-    // Entity tank = registry->create_entity();
-    // tank.Group("enemies");
-    // tank.add_component<TransformComponent>(glm::vec2(525.0, 600.0), glm::vec2(2.0, 2.0), 0.0);
-    // tank.add_component<RigidBodyComponent>(glm::vec2(50.0, 0.0));
-    // tank.add_component<SpriteComponent>("tank-image", 32, 32, GROUND_LAYER);
-    // tank.add_component<BoxColliderComponent>(22, 22, glm::vec2(10.0, 10.0));
-    // tank.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -200.0), 750, 5000, 25, false);
-    // tank.add_component<HealthComponent>(100, 100, false);
-    // tank.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 
     // Entity blocking = registry->create_entity();
     // blocking.Group("obstacles");
@@ -331,14 +298,4 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
     // blocking2.Group("obstacles");
     // blocking2.add_component<TransformComponent>(glm::vec2(500.0, 500.0), glm::vec2(2.0, 2.0), 0.0);
     // blocking2.add_component<BoxColliderComponent>(16, 200, glm::vec2(0.0, 0.0));
-
-    // Entity truck = registry->create_entity();
-    // truck.Group("enemies");
-    // truck.add_component<TransformComponent>(glm::vec2(100.0, 475.0), glm::vec2(2.0, 2.0), 0.0);
-    // truck.add_component<RigidBodyComponent>(glm::vec2(0.0, 0.0));
-    // truck.add_component<SpriteComponent>("truck-image", 32, 32, GROUND_LAYER);
-    // truck.add_component<BoxColliderComponent>(22, 22, glm::vec2(10.0, 10.0));
-    // truck.add_component<ProjectileEmitterComponent>(glm::vec2(0.0, -100.0), 1000, 5000, 10, false);
-    // truck.add_component<HealthComponent>(50, 100, false);
-    // truck.add_component<TextLabelComponent>(glm::vec2(0), "100", "pico8-font-7", col.green, false);
 }

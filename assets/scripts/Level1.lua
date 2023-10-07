@@ -2,6 +2,8 @@
 local current_system_hour = os.date("*t").hour
 local map_texture_asset_id
 
+local map_file_path = "./assets/tilemaps/jungle2.map"
+
 if current_system_hour >= 8 and current_system_hour < 18 then
     map_texture_asset_id = "tilemap-texture-day"
 else
@@ -87,14 +89,15 @@ Level = {
         { type = "texture", id = "bullet-texture",              file = "./assets/images/bullet.png", white_tex = false },
         { type = "texture", id = "radar-texture",               file = "./assets/images/radar-spritesheet.png", white_tex = false },
         { type = "font"   , id = "pico8-font-7",                file = "./assets/fonts/pico8.ttf", font_size = 7 },
-        { type = "font"   , id = "pico8-font-10",               file = "./assets/fonts/pico8.ttf", font_size = 10 }
+        { type = "font"   , id = "pico8-font-10",               file = "./assets/fonts/pico8.ttf", font_size = 10 },
+        { type = "audio"  , id = "helicopter-sound",            file = "./assets/sounds/helicopter.wav"}
     },
 
     ----------------------------------------------------
     -- table to define the map config variables
     ----------------------------------------------------
     tilemap = {
-        map_file = "./assets/tilemaps/jungle.map",
+        map_file = map_file_path,
         texture_asset_id = map_texture_asset_id,
         tile_size = 32,
         scale = 2.0
@@ -112,7 +115,7 @@ Level = {
             components = {
                 transform = {
                     position = { x = 242, y = 110 },
-                    scale = { x = 1.0, y = 1.0 },
+                    scale = { x = 1.25, y = 1.25 },
                     rotation = 0.0, -- degrees
                 },
                 rigidbody = {
@@ -158,6 +161,11 @@ Level = {
                 },
                 camera_follow = {
                     follow = true
+                },
+                audio_source = {
+                    audio_asset_id = "helicopter-sound",
+                    is_looping = true,
+                    volume = 1
                 }
             }
         },
@@ -199,7 +207,7 @@ Level = {
             components = {
                 transform = {
                     position = { x = 10, y = 10 },
-                    scale = { x = 1.0, y = 1.0 },
+                    scale = { x = 2.0, y = 2.0 },
                     rotation = 0.0, -- degrees
                 },
                 sprite = {
@@ -2910,8 +2918,6 @@ Level = {
                 on_update_script = {
                     [0] =
                     function(entity, delta_time, elapsed_time)
-                        
-                        --[[
                         -- this function makes the fighter jet move up and down the map shooting projectiles
                         local current_position_x, current_position_y = get_position(entity)
                         local current_velocity_x, current_velocity_y = get_velocity(entity)
@@ -2931,7 +2937,7 @@ Level = {
                             set_rotation(entity, 180) -- point down
                             set_projectile_velocity(entity, 0, 200) -- shoot projectiles down
                         end
-                        ]]--
+                        
                     end
                 }
             }
@@ -2979,8 +2985,8 @@ Level = {
                     [0] =
                     function(entity, delta_time, elapsed_time)
                         -- change the position of the the airplane to follow a sine wave movement
-                        local new_x = ellapsed_time * 0.09
-                        local new_y = 200 + (math.sin(ellapsed_time * 0.001) * 50)
+                        local new_x = elapsed_time * 0.09
+                        local new_y = 200 + (math.sin(elapsed_time * 0.001) * 50)
                         set_position(entity, new_x, new_y) -- set the new position
                     end
                 }

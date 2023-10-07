@@ -27,6 +27,7 @@ class Utils {
         static float InvLerp(float a, float b, float v);
         static float Remap(float a, float b, float c, float d, float v);
         static int GetFPS();
+        static bool IsWithinCircle(float x, float y, float x1, float y2, int radius);
 };
 
 #endif

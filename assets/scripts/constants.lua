@@ -2,7 +2,9 @@
 config = {
     title = "My Game Engine",
     full_screen = false,
+    target_fps=60 ,
     debug = false,
+    verbose_logging = false,
     debug_to_console = false,
     resolution = {
         window_width = 1280,

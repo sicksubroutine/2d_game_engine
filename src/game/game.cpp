@@ -13,6 +13,8 @@
 #include "../systems/render_gui_system.h"
 #include "../systems/script_system.h"
 #include "../systems/fog_of_war_system.h"
+#include "../systems/radar_system.h"
+#include "../systems/audio_system.h"
 
 // Others
 #include "../utils/utils.h"
@@ -24,6 +26,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
 #include <glm/glm.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_sdl.h>
@@ -34,6 +37,8 @@ int Game::window_width;
 int Game::window_height;
 int Game::map_width;
 int Game::map_height;
+int Game::set_radius = 150;
+bool Game::verbose_logging;
 
 Game::Game() {
     is_running = false;
@@ -61,6 +66,11 @@ void Game::Initialize(void) {
         return;
     }
 
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        Logger::Err("Error initializing SDL Mixer.");
+        return;
+    }
+
     bool full_screen = false;
     std::string config_file = "./assets/scripts/constants.lua";
     sol::load_result script = lua.load_file(config_file);
@@ -76,6 +86,9 @@ void Game::Initialize(void) {
         window_height = static_cast<int>(config["resolution"]["window_height"]);
         full_screen = config["full_screen"];
         is_debug = config["debug"];
+        fps = config["target_fps"];
+        ms_per_frame = 1000 / fps;
+        verbose_logging = config["verbose_logging"];
         Logger::debug_to_console = config["debug_to_console"];
     }
 
@@ -84,9 +97,10 @@ void Game::Initialize(void) {
     SDL_GetCurrentDisplayMode(0, &displayMode);
     window_width = full_screen ? displayMode.w : window_width;
     window_height = full_screen ? displayMode.h : window_height;
-
-    Logger::Log("Window width: " + std::to_string(window_width));
-    Logger::Log("Window height: " + std::to_string(window_height));
+    if (verbose_logging) {
+        Logger::Log("Window width: " + std::to_string(window_width));
+        Logger::Log("Window height: " + std::to_string(window_height));
+    }
     
     window = SDL_CreateWindow(
         NULL,
@@ -161,6 +175,7 @@ void Game::ProcessInput(void) {
 void Game::LoadSystems() {
     registry->add_system<RenderSystem>();
     registry->add_system<RenderTextSystem>();
+    registry->add_system<AudioSystem>();
     registry->add_system<MovementSystem>();
     registry->add_system<CollisionSystem>();
     registry->add_system<AnimationSystem>();
@@ -173,18 +188,24 @@ void Game::LoadSystems() {
     registry->add_system<RenderGUISystem>();
     registry->add_system<ScriptSystem>();
     registry->add_system<FogOfWarSystem>();
+    registry->add_system<RadarSystem>();
+}
+
+void Game::LuaBindings() {
+    registry->get_system<ScriptSystem>().CreateLuaBinds(lua);
 }
 
 void Game::Setup() {
 
     LoadSystems();
+    LuaBindings();
     LevelLoader loader;
     loader.load_level(lua, registry, asset_store, renderer, 1);
 }
 
 void Game::TimeDo() {
-    int time_to_wait = MS_PER_FRAME - (SDL_GetTicks() - ms_prev_frame);
-    if (time_to_wait > 0 && time_to_wait <= MS_PER_FRAME) {
+    int time_to_wait = ms_per_frame - (SDL_GetTicks() - ms_prev_frame);
+    if (time_to_wait > 0 && time_to_wait <= ms_per_frame) {
         SDL_Delay(time_to_wait);
     }
     delta_time = (SDL_GetTicks() - ms_prev_frame) / 1000.0f;
@@ -206,6 +227,7 @@ void Game::Update() {
      // update the registry to process any entities that are waiting to be added/removed
     registry->Update();
 
+    registry->get_system<AudioSystem>().Update(asset_store);
     registry->get_system<FogOfWarSystem>().Update(registry);
     registry->get_system<MovementSystem>().Update(delta_time, map_width, map_height);
     registry->get_system<AnimationSystem>().Update();
@@ -214,11 +236,12 @@ void Game::Update() {
     registry->get_system<CameraMovementSystem>().Update(camera, map_width, map_height);
     registry->get_system<ProjectileLifecycleSystem>().Update(camera);
     registry->get_system<HealthBarSystem>().Update();
-    registry->get_system<ScriptSystem>().Update();
+    registry->get_system<ScriptSystem>().Update(delta_time, SDL_GetTicks());
+
 }
 
 void Game::Render() {
-    SDL_SetRenderDrawColor(renderer,21,21,21,255);
+    SDL_SetRenderDrawColor(renderer,4,4,4,255);
     SDL_RenderClear(renderer);
 
     // invoke all of the systems that need to render
@@ -229,6 +252,7 @@ void Game::Render() {
         registry->get_system<CollisionSystem>().ColliderDebug(renderer, camera);
         registry->get_system<RenderGUISystem>().Render(registry, camera, map_width, map_height);
     }
+    registry->get_system<RadarSystem>().Render(renderer, registry);
 
     SDL_RenderPresent(renderer);
 }

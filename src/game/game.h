@@ -8,8 +8,8 @@
 #include "../components/sprite_component.h"
 #include "../event_bus/event_bus.h"
 
-const int FPS = 60;
-const int MS_PER_FRAME = 1000 / FPS;
+// const int FPS = 60;
+// const int MS_PER_FRAME = 1000 / FPS;
 
 class Game {
     private:
@@ -17,7 +17,9 @@ class Game {
         int ms_prev_frame = 0;
         float delta_time = 0;
         bool is_debug = false;
-        
+        int fps = 0;
+        int ms_per_frame = 0;
+
         SDL_Window* window;
         SDL_Renderer* renderer;
         SDL_Rect camera;
@@ -34,6 +36,7 @@ class Game {
         void Initialize();
         void Run();
         void LoadSystems();
+        void LuaBindings();
         void Setup();
         void ProcessInput();
         void Update();
@@ -41,6 +44,8 @@ class Game {
         void Destroy();
         void TimeDo();
 
+        static bool verbose_logging;
+        static int set_radius;
         static int window_width;
         static int window_height;
         static int map_width;

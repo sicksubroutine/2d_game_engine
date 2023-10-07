@@ -77,8 +77,12 @@ class RenderSystem: public System {
 
                     // fog of war system, that will fade out entities that are not within a certain radius of the player
                     // but have already been revealed by the player
-                    if (sprite.is_revealed && !sprite.is_hidden && !sprite.is_visible) {
-                        SDL_SetTextureAlphaMod(baseTexture, 100);
+                    if (sprite.is_revealed) {
+                        if (sprite.is_visible) {
+                            SDL_SetTextureAlphaMod(baseTexture, 255);
+                        } else {
+                            SDL_SetTextureAlphaMod(baseTexture, 100);
+                        }
                     }
                     
                     SDL_RenderCopyEx(renderer, baseTexture, &src_rect, &dst_rect, transform.rotation, NULL, sprite.flip);

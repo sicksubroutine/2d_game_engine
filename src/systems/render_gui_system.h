@@ -7,6 +7,7 @@
 #include "../logger/logger.h"
 #include "../utils/utils.h"
 #include <SDL2/SDL.h>
+#include "../game/game.h"
 
 class RenderGUISystem: public System {
     public:
@@ -52,6 +53,31 @@ class RenderGUISystem: public System {
                     // map width and height
                     ImGui::Text("Map Width: %d", map_width);
                     ImGui::Text("Map Height: %d", map_height);
+                    // Set the radius for the fog of war
+                    ImGui::Separator();
+                    ImGui::Text("Fog of War Radius");
+                    static int fog_of_war_radius = 150;
+                    static int large_fow_radius = 5000;
+                    static bool undo_map_reveal = false;
+                    ImGui::SliderInt("Radius", &fog_of_war_radius, 0, 1500);
+                    if (ImGui::Button("Set Radius")) {
+                        Game::set_radius = fog_of_war_radius;
+                    }
+                    // A "reveal map button" that sets the set radius to 5000 for a period of time then sets it back to the original radius
+                    if (ImGui::Button("Reveal Map")) {
+                        Game::set_radius = large_fow_radius;
+                        undo_map_reveal = true;
+                    }
+                    if (undo_map_reveal) {
+                        static int elapsed_time = 0;
+                        elapsed_time += SDL_GetTicks();
+                        if (elapsed_time >= 5000) {
+                            Game::set_radius = fog_of_war_radius;
+                            elapsed_time = 0;
+                            undo_map_reveal = false;
+                        }
+                    }
+                    
                 }
                 ImGui::End();
             }
@@ -78,6 +104,11 @@ class RenderGUISystem: public System {
                     ImGui::SameLine();
                     if (ImGui::Button("Test Warning")) {
                         Logger::Warn("This is a test warning");
+                    }
+                    // checkbox button for verbose logging
+                    static bool verbose_logging = false;
+                    if (ImGui::Checkbox("Verbose Logging", &verbose_logging)) {
+                        Game::verbose_logging = verbose_logging;
                     }
                     ImGui::EndChild();
 
@@ -106,7 +137,6 @@ class RenderGUISystem: public System {
                 ImGui::End();
             }
             
-
 
             if (enemy_spawn_tool) {
                 if (ImGui::Begin("Spawn Enemies")) {
@@ -189,8 +219,6 @@ class RenderGUISystem: public System {
                             projectile_repeat_frequency, 
                             projectile_damage);
                     }
-
-                    
                 }
                 ImGui::End();
             }
@@ -264,7 +292,6 @@ class RenderGUISystem: public System {
                     }
                 }
             }
-
             ImGui::Render();
             ImGuiSDL::Render(ImGui::GetDrawData());
         }

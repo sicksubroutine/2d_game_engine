@@ -1,6 +1,7 @@
 #include "asset_store.h"
 #include "../logger/logger.h"
 #include <SDL2/SDL_image.h>
+#include "../game/game.h"
 
 AssetStore::AssetStore() {
     Logger::Log("AssetStore constructor called!");
@@ -28,7 +29,9 @@ void AssetStore::clear_assets() {
 }
 
 void AssetStore::add_texture(SDL_Renderer* renderer, std::string asset_id, const std::string& file_path, bool get_white) {
-    Logger::Log("Adding texture to asset store with id: " + asset_id);
+    if (Game::verbose_logging) {
+        Logger::Log("Adding texture to asset store with id: " + asset_id);
+    }
     SDL_Surface* surface = IMG_Load(file_path.c_str());
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     
@@ -66,7 +69,9 @@ SDL_Surface* AssetStore::ConvertToWhite(SDL_Surface* originalSurface) {
 }
 
 void AssetStore::add_font(const std::string asset_id, const std::string& file_path, int font_size) {
-    Logger::Log("Adding font to asset store with id: " + asset_id);
+    if (Game::verbose_logging) {
+        Logger::Log("Adding font to asset store with id: " + asset_id);
+    }
     TTF_Font* font = TTF_OpenFont(file_path.c_str(), font_size);
     // if (!font) {
     //     Logger::Err("Failed to load font: " + file_path);
@@ -89,4 +94,27 @@ SDL_Texture* AssetStore::get_texture(const std::string& asset_id) {
         return nullptr;
     }
     return textures.at(asset_id);
+}
+
+void AssetStore::add_audio(const std::string asset_id, const std::string& file_path) {
+    if (Game::verbose_logging) {
+        
+    }
+    Logger::Log("Adding audio to asset store with id: " + asset_id);
+    Mix_Chunk* audio = Mix_LoadWAV_RW(SDL_RWFromFile(file_path.c_str(), "rb"), 1);
+
+
+    // if (!audio) {
+    //     Logger::Err("Failed to load audio: " + file_path);
+    //     return;
+    // }
+    audio_files.emplace(asset_id, audio);
+}
+
+Mix_Chunk* AssetStore::get_audio(const std::string& asset_id) {
+    if (audio_files.find(asset_id) == audio_files.end()) {
+        Logger::Err("Audio not found in asset store with id: " + asset_id);
+        return nullptr;
+    }
+    return audio_files.at(asset_id);
 }

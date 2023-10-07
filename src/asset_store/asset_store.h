@@ -5,12 +5,13 @@
 #include <string>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
 
 class AssetStore {
     private:
         std::map<std::string, SDL_Texture*> textures;
         std::map<std::string, TTF_Font*> fonts;
-        // TODO: Create a map for audio
+        std::map<std::string, Mix_Chunk*> audio_files;
 
     public:
         AssetStore();
@@ -27,7 +28,8 @@ class AssetStore {
         TTF_Font* get_font(const std::string& asset_id);
 
         // Audio management
-        // TODO: Add audio management
+        void add_audio(const std::string asset_id, const std::string& file_path);
+        Mix_Chunk* get_audio(const std::string& asset_id);
         
 };
 

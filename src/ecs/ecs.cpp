@@ -1,5 +1,6 @@
 #include "ecs.h"
 #include "../logger/logger.h"
+#include "../game/game.h"
 
 int IComponent::next_id = 0;
 
@@ -59,15 +60,17 @@ Entity Registry::create_entity() {
     Entity entity(entity_id);
     entity.registry = this;
     entities_to_be_added.insert(entity);
-
-    Logger::Log("Entity created with id = " + std::to_string(entity_id));
+    if (Game::verbose_logging) {
+        Logger::Log("Entity created with id = " + std::to_string(entity_id));
+    }
     return entity;
 }
 
 void Registry::kill_entity(Entity entity) {
     entities_to_be_killed.insert(entity);
-
-    Logger::Log("Entity destroyed with id = " + std::to_string(entity.get_id()));
+    if (Game::verbose_logging) {
+        Logger::Log("Entity destroyed with id = " + std::to_string(entity.get_id()));
+    }
 }
 
 void Registry::add_entity_to_systems(Entity entity) {

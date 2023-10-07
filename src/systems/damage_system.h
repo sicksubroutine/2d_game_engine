@@ -70,8 +70,9 @@ class DamageSystem: public System {
                 return;
             }
             health.current_health -= projectile_component.hit_damage;
-
-            //Logger::Log("Player " + std::to_string(player.get_id()) + " health is now " + std::to_string(health.current_health) + ".");
+            if (Game::verbose_logging) {
+                Logger::Log("Player " + std::to_string(player.get_id()) + " health is now " + std::to_string(health.current_health) + ".");
+            }
             if (health.current_health <= 0) {
                 // kill the player when health is 0
                 player.Kill();
@@ -94,7 +95,9 @@ class DamageSystem: public System {
             if (enemy_health.is_god_mode){
                 return;
             }
-            Logger::Log("Enemy health is " + std::to_string(enemy_health.current_health) + ".");
+            if (Game::verbose_logging) {
+                Logger::Log("Enemy health is " + std::to_string(enemy_health.current_health) + ".");
+            }
             enemy_health.current_health -= projectile_component.hit_damage;
 
             if (enemy_health.current_health <= 0) {

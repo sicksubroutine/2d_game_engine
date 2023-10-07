@@ -322,9 +322,10 @@ void Registry::add_component(Entity entity, TArgs&& ...args){
     component_pool->set(entity_id, new_component);
 
     entity_component_signatures[entity_id].set(component_id);
-
-    //Logger::Log("Component id = " + std::to_string(component_id) + " added to entity id = " + std::to_string(entity_id));
-}
+    // if (Game::verbose_logging) {
+    //     Logger::Log("Component id = " + std::to_string(component_id) + " added to entity id = " + std::to_string(entity_id));
+    // }
+}   
 
 template <typename TComponent>
 void Registry::remove_component(Entity entity) {
@@ -336,8 +337,9 @@ void Registry::remove_component(Entity entity) {
     component_pool->remove(entity_id);
 
     entity_component_signatures[entity_id].set(component_id, false);
-
-    //Logger::Log("Component id = " + std::to_string(component_id) + " removed from entity id = " + std::to_string(entity_id));
+    // if (Game::verbose_logging) {
+    //     Logger::Log("Component id = " + std::to_string(component_id) + " removed from entity id = " + std::to_string(entity_id));
+    // }
 }
 
 template <typename TComponent>

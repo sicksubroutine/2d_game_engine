@@ -22,9 +22,9 @@ class KeyboardControlSystem: public System {
 
         void on_key_pressed(KeyPressedEvent& event) {
             // debug
-            // std::string key_code = std::to_string(event.symbol);
-            // std::string key_symbol(1, event.symbol);
-            // Logger::Log("Key pressed event emitted: [" + key_code + "] " + key_symbol + ".");
+            if (Game::verbose_logging) {
+                Logger::Log("Key pressed event emitted: [" + std::to_string(event.symbol) + "] " + std::string(1, event.symbol) + ".");
+            }
             for (auto entity: get_system_entities()) {
                 const auto keyboard_control = entity.get_component<KeyboardControlledComponent>();
                 auto& sprite = entity.get_component<SpriteComponent>();
