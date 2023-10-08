@@ -280,7 +280,8 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
                 new_entity.add_component<AudioComponent>(
                     audio_component.value()["audio_asset_id"],
                     audio_component.value()["is_looping"],
-                    audio_component.value()["volume"]
+                    audio_component.value()["volume"],
+                    audio_component.value()["delay"]
                 );
             }
             

@@ -15,18 +15,24 @@ class AudioSystem : public System {
         }
 
         void Update(std::unique_ptr<AssetStore>& asset_store) {
-
+            int current_time = SDL_GetTicks();
             for (auto entity : get_system_entities()) {
                 
                 auto& audio = entity.get_component<AudioComponent>();
-                
+                double delay = audio.delay * 1000;
                 if (audio.asset_id != "") {
-                    if (audio.is_playing) {
+                    if (audio.is_playing and !audio.looping) {
                         continue;
                     }
+                    if (current_time - audio.start_time < delay) {
+                        continue;
+                    } else {
+                        audio.start_time = current_time;
+                    }
+                    
                     Mix_Chunk* sound = asset_store->get_audio(audio.asset_id);
                     
-                    if (Mix_PlayChannel(-1, sound, audio.looping ? -1 : 0) == -1) {
+                    if (Mix_PlayChannel(-1, sound, 0) == -1) {
                         Logger::Err("Error playing audio: " + std::string(Mix_GetError()));
                     } else{
                         audio.is_playing = true;

@@ -165,7 +165,8 @@ Level = {
                 audio_source = {
                     audio_asset_id = "helicopter-sound",
                     is_looping = true,
-                    volume = 1
+                    volume = 1,
+                    delay = 1.25 -- seconds
                 }
             }
         },
