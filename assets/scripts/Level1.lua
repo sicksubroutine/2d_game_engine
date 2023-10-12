@@ -90,7 +90,8 @@ Level = {
         { type = "texture", id = "radar-texture",               file = "./assets/images/radar-spritesheet.png", white_tex = false },
         { type = "font"   , id = "pico8-font-7",                file = "./assets/fonts/pico8.ttf", font_size = 7 },
         { type = "font"   , id = "pico8-font-10",               file = "./assets/fonts/pico8.ttf", font_size = 10 },
-        { type = "audio"  , id = "helicopter-sound",            file = "./assets/sounds/helicopter.wav"}
+        { type = "audio"  , id = "helicopter-sound",            file = "./assets/sounds/helicopter.wav", audio_type = "sfx"},
+        { type = "audio"  , id = "bullet-sound",                file = "./assets/sounds/bullet.mp3", audio_type = "sfx"}
     },
 
     ----------------------------------------------------
@@ -166,7 +167,8 @@ Level = {
                     audio_asset_id = "helicopter-sound",
                     is_looping = true,
                     volume = 1,
-                    delay = 1.25 -- seconds
+                    delay = 0, -- seconds
+                    channel = PLAYER_CHANNEL
                 }
             }
         },

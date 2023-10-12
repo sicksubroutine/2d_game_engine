@@ -281,7 +281,8 @@ void LevelLoader::load_level(sol::state& lua, const std::unique_ptr<Registry>& r
                     audio_component.value()["audio_asset_id"],
                     audio_component.value()["is_looping"],
                     audio_component.value()["volume"],
-                    audio_component.value()["delay"]
+                    audio_component.value()["delay"],
+                    static_cast<AudioChannel>(audio_component.value()["channel"])
                 );
             }
             

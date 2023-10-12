@@ -9,6 +9,7 @@
 #include "../components/box_collider_component.h"
 #include "../components/projectile_component.h"
 #include "../components/camera_follow_component.h"
+#include "../components/audio_component.h"
 #include <SDL2/SDL.h>
 
 class ProjectileEmitSystem: public System {
@@ -50,6 +51,7 @@ class ProjectileEmitSystem: public System {
                         
                         Entity projectile = entity.registry->create_entity();
                         auto entity_id = entity.get_id();
+                        //entity.add_component<AudioComponent>("bullet-sound", false, 100, 0.0, WEAPON_CHANNEL);
                         projectile_do(projectile, projectile_position, projectile_velocity, projectile_emitter.is_friendly, projectile_emitter.hit_damage, projectile_emitter.projectile_duration, entity_id);
                     }
                 }   

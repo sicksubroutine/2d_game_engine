@@ -19,9 +19,19 @@ class AudioSystem : public System {
             for (auto entity : get_system_entities()) {
                 
                 auto& audio = entity.get_component<AudioComponent>();
+                AudioChannel channel = audio.channel;
+                // check if audio is playing and if it is done playing
+                if (audio.is_playing) {
+                    if (Mix_Playing(channel) == 0) {
+                        audio.is_playing = false;
+                    } else {
+                        continue;
+                    }
+                }
+
                 double delay = audio.delay * 1000;
                 if (audio.asset_id != "") {
-                    if (audio.is_playing and !audio.looping) {
+                    if (!audio.looping) {
                         continue;
                     }
                     if (current_time - audio.start_time < delay) {
@@ -32,7 +42,7 @@ class AudioSystem : public System {
                     
                     Mix_Chunk* sound = asset_store->get_audio(audio.asset_id);
                     
-                    if (Mix_PlayChannel(-1, sound, 0) == -1) {
+                    if (Mix_PlayChannel(channel, sound, 0) == -1) {
                         Logger::Err("Error playing audio: " + std::string(Mix_GetError()));
                     } else{
                         audio.is_playing = true;

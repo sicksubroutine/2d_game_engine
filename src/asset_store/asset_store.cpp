@@ -101,9 +101,11 @@ void AssetStore::add_audio(const std::string asset_id, const std::string& file_p
         
     }
     Logger::Log("Adding audio to asset store with id: " + asset_id);
+    // check if sfx or music at some point
+    
     Mix_Chunk* audio = Mix_LoadWAV_RW(SDL_RWFromFile(file_path.c_str(), "rb"), 1);
 
-
+    // 
     // if (!audio) {
     //     Logger::Err("Failed to load audio: " + file_path);
     //     return;

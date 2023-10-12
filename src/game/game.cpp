@@ -71,6 +71,8 @@ void Game::Initialize(void) {
         return;
     }
 
+    Mix_AllocateChannels(5);
+
     bool full_screen = false;
     std::string config_file = "./assets/scripts/constants.lua";
     sol::load_result script = lua.load_file(config_file);

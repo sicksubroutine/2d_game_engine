@@ -21,6 +21,13 @@ BULLET_LAYER = 4
 PLAYER_LAYER = 5
 GUI_LAYER = 6
 
+-- audio channels
+BACKGROUND_CHANNEL = 0
+ENEMY_CHANNEL = 1
+PLAYER_CHANNEL = 2
+WEAPON_CHANNEL = 3
+MUSIC_CHANNEL = 4
+
 -- color constants
 WHITE = { r = 255, g = 255, b = 255 }
 BLACK = { r = 0, g = 0, b = 0 }
